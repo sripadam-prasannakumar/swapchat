@@ -1,0 +1,25 @@
+.reaction-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #fff;
+  padding: 6px 10px;
+  border-radius: 20px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  position: relative;
+}
+
+.reaction-emoji {
+  font-size: 20px;
+  cursor: pointer;
+  transition: transform 0.15s ease;
+}
+
+.reaction-emoji:hover {
+  transform: scale(1.2);
+}
+
+.plus {
+  font-weight: bold;
+  font-size: 22px;
+}

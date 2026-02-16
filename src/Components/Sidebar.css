@@ -1,0 +1,27 @@
+.sidebar {
+  width: 320px;
+  background: #ffffff;
+  border-right: 1px solid #ddd;
+}
+
+.sidebar-header {
+  padding: 16px;
+  font-weight: bold;
+  background: #0f766e;
+  color: white;
+}
+
+.chat-user {
+  display: flex;
+  gap: 12px;
+  padding: 12px;
+  cursor: pointer;
+}
+
+.chat-user:hover {
+  background: #f0f2f5;
+}
+
+body.dark .sidebar {
+  background: #111b21;
+}

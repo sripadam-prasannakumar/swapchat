@@ -1,0 +1,130 @@
+/* Themes.css */
+
+/* ================= THEME DEFINITIONS ================= */
+
+/* Default Theme (Light) */
+.theme-default {
+  --bg-chat: linear-gradient(180deg, #e0e7ff 0%, #f0f4ff 50%, #faf5ff 100%);
+  --bubble-me: linear-gradient(135deg, #7c3aed 0%, #a855f7 100%);
+  --bubble-other: rgba(255, 255, 255, 0.95);
+  --text-on-accent: #ffffff;
+}
+
+/* Ocean Blue */
+.theme-ocean {
+  --bg-chat: linear-gradient(180deg, #dbeafe 0%, #eff6ff 100%);
+  --bubble-me: linear-gradient(135deg, #0ea5e9 0%, #3b82f6 100%);
+  --bubble-other: #ffffff;
+  --text-on-accent: #ffffff;
+}
+
+/* Love & Passion */
+.theme-love {
+  --bg-chat: linear-gradient(180deg, #ffe4e6 0%, #fff1f2 100%);
+  --bubble-me: linear-gradient(135deg, #e11d48 0%, #be123c 100%);
+  --bubble-other: #fff0f2;
+  --text-on-accent: #ffffff;
+}
+
+/* Midnight Dark */
+.theme-midnight {
+  --bg-chat: linear-gradient(180deg, #0f172a 0%, #1e293b 100%);
+  --bubble-me: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+  --bubble-other: #334155;
+  --text-primary: #f8fafc;
+  /* Override text color for dark bg */
+  --text-secondary: #cbd5e1;
+  --text-on-accent: #ffffff;
+}
+
+/* Sunset Glow */
+.theme-sunset {
+  --bg-chat: linear-gradient(180deg, #fff7ed 0%, #ffedd5 100%);
+  --bubble-me: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
+  --bubble-other: #fffaf0;
+  --text-on-accent: #ffffff;
+}
+
+/* Mint Fresh */
+.theme-mint {
+  --bg-chat: linear-gradient(180deg, #ecfdf5 0%, #d1fae5 100%);
+  --bubble-me: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  --bubble-other: #f0fdf4;
+  --text-on-accent: #ffffff;
+}
+
+/* Neon Cyber */
+.theme-neon {
+  --bg-chat: #000000;
+  --bubble-me: linear-gradient(135deg, #d946ef 0%, #a855f7 100%);
+  --bubble-other: #1a1a1a;
+  --text-primary: #e2e8f0;
+  --text-secondary: #94a3b8;
+  --text-on-accent: #ffffff;
+  --bg-glass: rgba(0, 0, 0, 0.8);
+}
+
+/* Custom Background Wrapper */
+.theme-custom-bg {
+  /* We don't set a background color here because the image will take over */
+  /* But we might want a fallback or overlay */
+  --bg-chat: transparent;
+}
+
+/* ================= 3D THEMES ================= */
+
+/* 3D Ocean */
+.theme-3d-ocean {
+  --bg-chat: linear-gradient(180deg, #1e3a8a 0%, #3b82f6 100%);
+  --bubble-me: linear-gradient(145deg, #0ea5e9, #0284c7);
+  --bubble-other: linear-gradient(145deg, #ffffff, #e2e8f0);
+  --text-on-accent: #ffffff;
+  --text-primary: #0f172a;
+  /* Dark text for light bubble */
+  --bubble-shadow-me: 5px 5px 10px #0c4a6e, -5px -5px 10px #38bdf8;
+  /* Neumorphic dark/light */
+  --bubble-shadow-other: 5px 5px 10px #cbd5e1, -5px -5px 10px #ffffff;
+}
+
+/* 3D Sunset */
+.theme-3d-sunset {
+  --bg-chat: linear-gradient(180deg, #4c0519 0%, #be123c 100%);
+  --bubble-me: linear-gradient(145deg, #fbbf24, #d97706);
+  --bubble-other: linear-gradient(145deg, #fff1f2, #ffe4e6);
+  --text-on-accent: #ffffff;
+  --text-primary: #881337;
+  /* Dark red text for light bubble */
+  --bubble-shadow-me: 4px 4px 8px #92400e, -2px -2px 6px #fcd34d;
+  --bubble-shadow-other: 4px 4px 8px #fda4af, -2px -2px 6px #ffffff;
+}
+
+/* 3D Neon */
+.theme-3d-neon {
+  --bg-chat: #09090b;
+  --bubble-me: linear-gradient(145deg, #d946ef, #a21caf);
+  --bubble-other: linear-gradient(145deg, #27272a, #18181b);
+  --text-primary: #e2e8f0;
+  --text-secondary: #94a3b8;
+  --text-on-accent: #ffffff;
+  --bubble-shadow-me: 0 0 15px rgba(217, 70, 239, 0.6), inset 0 0 10px rgba(255, 255, 255, 0.2);
+  --bubble-shadow-other: 5px 5px 10px #000000, -2px -2px 5px #3f3f46;
+}
+
+/* Apply 3D effects to bubbles if a 3D theme is active */
+[class*="theme-3d-"] .bubble {
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  transform: preserve-3d;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+[class*="theme-3d-"] .message.me .bubble {
+  box-shadow: var(--bubble-shadow-me);
+}
+
+[class*="theme-3d-"] .message.other .bubble {
+  box-shadow: var(--bubble-shadow-other);
+}
+
+[class*="theme-3d-"] .bubble:hover {
+  transform: translateY(-2px) scale(1.02);
+}

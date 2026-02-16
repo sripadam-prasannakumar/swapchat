@@ -1,0 +1,103 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+.container {
+  display: flex;
+  height: 100vh;
+  justify-content: center;
+  align-items: center;
+}
+
+.form {
+  width: 300px;
+  padding: 20px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+input {
+  padding: 10px;
+}
+
+button {
+  padding: 10px;
+  background: #2563eb;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.error {
+  color: red;
+}
+
+.link {
+  color: blue;
+  cursor: pointer;
+}
+
+/* ===== GLOBAL DARK MODE ===== */
+body.dark {
+  background-color: #0b141a;
+  color: #e9edef;
+}
+
+/* CHAT AREA */
+body.dark .chat-area {
+  background-color: #0b141a;
+}
+
+/* CHAT HEADER */
+body.dark .chat-header {
+  background-color: #202c33;
+  border-bottom: 1px solid #2a3942;
+}
+
+/* MESSAGES */
+body.dark .messages {
+  background-color: #0b141a;
+}
+
+/* MESSAGE BUBBLES */
+body.dark .message.other .bubble {
+  background-color: #202c33;
+  color: #e9edef;
+}
+
+body.dark .message.me .bubble {
+  background-color: #005c4b;
+  color: #ffffff;
+}
+
+/* INPUT */
+body.dark .input {
+  background-color: #202c33;
+  border-top: 1px solid #2a3942;
+}
+
+body.dark .input input {
+  background-color: #2a3942;
+  color: white;
+  border: none;
+}
+
+/* LEFT NAV */
+body.dark .leftnav {
+  background-color: #202c33;
+  border-right: 1px solid #2a3942;
+}
+
+/* SIDEBAR */
+body.dark .sidebar {
+  background-color: #111b21;
+}
+
+/* EMOJI PICKER */
+body.dark .emoji-mart {
+  background-color: #202c33 !important;
+}

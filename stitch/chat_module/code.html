@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Modern Chat Interface</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#5048e5",
+                        "background-light": "#f6f6f8",
+                        "background-dark": "#121121",
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+<style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #272546;
+            border-radius: 10px;
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 antialiased overflow-hidden h-screen">
+<div class="flex h-full w-full">
+<!-- Sidebar -->
+<aside class="w-80 border-r border-slate-200 dark:border-[#272546] flex flex-col bg-white dark:bg-[#131221]">
+<!-- Sidebar Header -->
+<div class="p-4 border-b border-slate-200 dark:border-[#272546]">
+<div class="flex items-center justify-between mb-4">
+<div class="flex items-center gap-3">
+<div class="relative">
+<div class="w-10 h-10 rounded-full bg-slate-200 dark:bg-[#272546] bg-cover bg-center" data-alt="User profile avatar circle" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuAVvAFYhmzo1BV6aLEbM2S_JhllqV3RqThe6lmYJFYIt0J26T5T-i5kfZi0_2MwAs9Fy-aWWAtRYN2brDsnxKrAVApb0OgKJRdbScqi77fGqoTwzizh-2aOlJsyCCBJA5oymDE4oriWCHd99EBiUs0yDes5BO5F-xi6HfyX6Xp1UqngIcI1Z0pcojK8r_ZJpmfs5-DQcgPViRICl8tfCFPJFh04U2HD7uHo_VopD5lUMOD2_GEs-IgWObU7schobRx5YZv4swxTkPw')"></div>
+<div class="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-white dark:border-[#131221] rounded-full"></div>
+</div>
+<h1 class="font-bold text-lg">Messages</h1>
+</div>
+<button class="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-[#272546] transition-colors">
+<span class="material-symbols-outlined text-[22px]">edit_square</span>
+</button>
+</div>
+<!-- Search -->
+<div class="relative">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-[20px]">search</span>
+<input class="w-full bg-slate-100 dark:bg-[#272546] border-none rounded-lg pl-10 pr-4 py-2 text-sm focus:ring-2 focus:ring-primary/50 transition-all placeholder:text-slate-400" placeholder="Search conversations..." type="text"/>
+</div>
+</div>
+<!-- Chat List -->
+<div class="flex-1 overflow-y-auto custom-scrollbar">
+<!-- Active Chat Item -->
+<div class="flex items-center gap-3 p-4 bg-primary/10 border-r-4 border-primary cursor-pointer">
+<div class="relative shrink-0">
+<div class="w-12 h-12 rounded-full bg-cover bg-center" data-alt="Alex Rivera headshot" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuA3xz1bv1horx2rXr_PSIDwi8WEB4fhWnc0-KhpxIO0bDsaUdb2Z-yVb6ZMobkmq1_F5hnQNrG29nf6hMzs92CjhvHyAkkWbvJAucsd2lkN25VTRVlCCp9m0ld7MXzUajWe07KYqpZ1WFpB91TaLa5XBykufzDncOBfxkw5lkb2m8FRrTTsIJPfqCLMCRtHj9Y5EVD-5rOQ6-SBDxSL9mn6lDHN9BgoDif2Rq6qbfHgEiOMOqbgbPLO-i-w2XZAoRpuB-1zZy8Zmv0')"></div>
+<div class="absolute bottom-0 right-0 w-3.5 h-3.5 bg-green-500 border-2 border-white dark:border-[#131221] rounded-full"></div>
+</div>
+<div class="flex-1 min-w-0">
+<div class="flex justify-between items-baseline">
+<h3 class="font-semibold truncate">Alex Rivera</h3>
+<span class="text-[11px] text-slate-500 dark:text-slate-400">12:45 PM</span>
+</div>
+<p class="text-xs text-slate-600 dark:text-slate-400 truncate font-medium">I'll take a look in 10 minutes...</p>
+</div>
+</div>
+<!-- Chat Item -->
+<div class="flex items-center gap-3 p-4 hover:bg-slate-50 dark:hover:bg-[#272546]/50 cursor-pointer transition-colors border-r-4 border-transparent">
+<div class="relative shrink-0">
+<div class="w-12 h-12 rounded-full bg-cover bg-center" data-alt="Jordan Smith headshot" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuDUPTt4ieTTVOJ_Q9v2wchKxf7Qpye38b84o0qjef7W9AMMyHXSIukbLf2V_z-KjOcOaQr49st-h4EnQHUqFVI66hYuoVdwraP9L_ZgVm38uWHHa2eTbmLgtidPHxSK1ArIWQewYGMfDyhLMVETWmPZCZygpngTHJVblgwpEtpVg4BLXLpNHFcJADVbpMWnhxMwOUzUv8o-SdlH4kW0PfpUP-WZrXCd2yEJSEfnhtz02p6JBdBSYAEfu6nkKgBpL04nm0B9Aqnk23A')"></div>
+<div class="absolute bottom-0 right-0 w-3.5 h-3.5 bg-slate-400 border-2 border-white dark:border-[#131221] rounded-full"></div>
+</div>
+<div class="flex-1 min-w-0">
+<div class="flex justify-between items-baseline">
+<h3 class="font-semibold truncate">Jordan Smith</h3>
+<span class="text-[11px] text-slate-500 dark:text-slate-400">Yesterday</span>
+</div>
+<p class="text-xs text-slate-500 dark:text-slate-400 truncate">The project files are ready for review.</p>
+</div>
+</div>
+<!-- Chat Item Unread -->
+<div class="flex items-center gap-3 p-4 hover:bg-slate-50 dark:hover:bg-[#272546]/50 cursor-pointer transition-colors border-r-4 border-transparent">
+<div class="relative shrink-0">
+<div class="w-12 h-12 rounded-full bg-cover bg-center" data-alt="Taylor Bell headshot" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuB0bKQxk5n06pr1f_zevmp93FqfHtglfOu-38PU32xIkSUFbnxplckf8kzoJBHqXErdHBSUYd0s9cG02jUDHGYVi9ZIDBCuBLKk_ZW1a83vEWIhID9GkIXOnlEf94GW4GwDiieXK6MpJ7MrkTYThzTH48tbp8XlGbY01rWEuv2AkQd_jfv-SAluF96VVopF8M0LxiG5Xz2XO681Rj9nthozt2SPJCq6p27SBBT7rPBCpA2j8GEozemkvFQhyj71C4dquT3DfaZNO4c')"></div>
+<div class="absolute bottom-0 right-0 w-3.5 h-3.5 bg-green-500 border-2 border-white dark:border-[#131221] rounded-full"></div>
+</div>
+<div class="flex-1 min-w-0">
+<div class="flex justify-between items-baseline">
+<h3 class="font-bold truncate">Taylor Bell</h3>
+<span class="text-[11px] text-primary font-bold">2:15 PM</span>
+</div>
+<div class="flex justify-between items-center">
+<p class="text-xs text-slate-900 dark:text-white truncate font-semibold">Can we hop on a quick call?</p>
+<span class="w-2 h-2 bg-primary rounded-full"></span>
+</div>
+</div>
+</div>
+<!-- More Chat Items -->
+<div class="flex items-center gap-3 p-4 hover:bg-slate-50 dark:hover:bg-[#272546]/50 cursor-pointer transition-colors border-r-4 border-transparent">
+<div class="relative shrink-0">
+<div class="w-12 h-12 rounded-full bg-cover bg-center" data-alt="Morgan Lee headshot" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuBGm4gjoMayqk26fdwgi_WgomqyNc40-tnmIEAsBXr9S1Y8fDgWUcGEcpFKJWHb2rkxfrxcPjHVVLCQpkzzQxdMH0KbOVNYG2IButEtgC56IH06Qc16iguoeGiQMZxM64vXoxvcOIEFjSJsoxfqzxYtK7I8LM_j3Y2jpayhlEU3eZPf3L1zgmaTt4KId1_pqR6ujG8TBOrnexxCVTtitnJnr1mtPgUggTmphDsF0L5FRLRqJxAxF98VRWm4EpMfRf7qX44How1_qcc')"></div>
+</div>
+<div class="flex-1 min-w-0">
+<div class="flex justify-between items-baseline">
+<h3 class="font-semibold truncate">Morgan Lee</h3>
+<span class="text-[11px] text-slate-500 dark:text-slate-400">Monday</span>
+</div>
+<p class="text-xs text-slate-500 dark:text-slate-400 truncate">Let's reschedule for tomorrow afternoon.</p>
+</div>
+</div>
+</div>
+</aside>
+<!-- Main Chat Area -->
+<main class="flex-1 flex flex-col bg-white dark:bg-background-dark">
+<!-- Chat Header -->
+<header class="h-[72px] flex items-center justify-between px-6 border-b border-slate-200 dark:border-[#272546] bg-white/80 dark:bg-background-dark/80 backdrop-blur-md z-10">
+<div class="flex items-center gap-4">
+<div class="relative">
+<div class="w-10 h-10 rounded-full bg-cover bg-center" data-alt="Alex Rivera profile picture" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuDlDrFTjWtZnHzMR-WX_lYugPdFVJJJcF7ldQ7nq91krn6diMnJ79BLPoaM73oPsMOIfHdbB9HSikXHcetPwKbWd4t37lgQ2MASPvjia4to_tvgM1mTFeW-ieT1FgZh-_muny-mCeXZPk5T918bjigwA8ysC_jgc8W3A93_ibPyfJcCctjBPkJUa1ARe9WfSe9Nelwyuzkpk6PyGkyyarDTMFDNZ29_6b5u-3wsRWTjksteXqJkIuIE1Bh8Z8jG_sQchaUM1QRCOd8')"></div>
+<div class="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-white dark:border-background-dark rounded-full"></div>
+</div>
+<div>
+<h2 class="font-bold text-base leading-tight">Alex Rivera</h2>
+<span class="text-xs text-green-500 font-medium">Online</span>
+</div>
+</div>
+<div class="flex items-center gap-2">
+<button class="p-2.5 rounded-lg bg-slate-100 dark:bg-[#272546] text-slate-600 dark:text-white hover:bg-primary/20 hover:text-primary transition-all">
+<span class="material-symbols-outlined text-[20px]">videocam</span>
+</button>
+<button class="p-2.5 rounded-lg bg-slate-100 dark:bg-[#272546] text-slate-600 dark:text-white hover:bg-primary/20 hover:text-primary transition-all">
+<span class="material-symbols-outlined text-[20px]">call</span>
+</button>
+<div class="w-px h-6 bg-slate-200 dark:border-[#272546] mx-1"></div>
+<button class="p-2.5 rounded-lg bg-slate-100 dark:bg-[#272546] text-slate-600 dark:text-white hover:bg-primary/20 hover:text-primary transition-all">
+<span class="material-symbols-outlined text-[20px]">more_vert</span>
+</button>
+</div>
+</header>
+<!-- Message History -->
+<div class="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar">
+<!-- Date Divider -->
+<div class="flex items-center justify-center">
+<div class="h-px flex-1 bg-slate-100 dark:bg-[#272546]"></div>
+<span class="px-4 text-[11px] font-bold tracking-wider text-slate-400 uppercase">Today</span>
+<div class="h-px flex-1 bg-slate-100 dark:bg-[#272546]"></div>
+</div>
+<!-- Received Message -->
+<div class="flex gap-3 max-w-[80%] group">
+<div class="shrink-0 mt-auto mb-1">
+<div class="w-8 h-8 rounded-full bg-cover bg-center" data-alt="Alex Rivera mini avatar" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuDgco8-nOdrXyMRkepCGGS5Cr3KIwt1Q4Xiyf2AvLO2BfoUxl_cLgdQghz2qfmvEbgdOd8_x6YcFutypj_uAPECzs8bxhaCzFmd7t7eIaCiV3xgRJ-hFWMxkZJRcb7YpGO7Tw777yHGEp__VjX6eyQbcXoPtnPOIpapXGexWeCHSIp5ndF3N2Z6zzM8Z71y4BLYUZ08m4-KZx-DIDEyr4g4xNFA_nsRkaKWZfTYPJ1wweFUvHDiCde0GBGbNbwQWZcxmiaLUfoSitg')"></div>
+</div>
+<div>
+<div class="flex items-baseline gap-2 mb-1 px-1">
+<span class="text-xs font-bold text-slate-500 dark:text-slate-400">Alex Rivera</span>
+<span class="text-[10px] text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity">12:38 PM</span>
+</div>
+<div class="bg-slate-100 dark:bg-[#272546] rounded-2xl rounded-bl-none px-4 py-3 shadow-sm">
+<p class="text-sm leading-relaxed">Hey! Did you get a chance to look at the new design specs I sent over earlier today? We need to finalize the mobile views by tomorrow morning.</p>
+</div>
+</div>
+</div>
+<!-- Sent Message -->
+<div class="flex flex-row-reverse gap-3 max-w-[80%] ml-auto group">
+<div class="shrink-0 mt-auto mb-1">
+<div class="w-8 h-8 rounded-full bg-cover bg-center" data-alt="My mini avatar" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuCYW_xVnw5wUCiJL1SGIK_ld7a6oO-5-yk_aVOqQ1PIhDwRrdykfIUdjWOrlkJkWF5YIwxMAWstd_52ZgZye7gZvtLLMT9R7j_KzHLdG1WdiV6yk7kvd9GEZUofPfxoNhk_Rs-gazvwxfqO55qnk6NtFY5WsIvaFAzhSkK1sqfrrxXLUkl6sHYskb2im7LLWKXn79RGi0VO1soPugw3rY14ilUzZCtfO0Zw-sTBK48OBHL3NvgwHehaBnN1LFlLV5oj5mr50vXpHVg')"></div>
+</div>
+<div class="flex flex-col items-end">
+<div class="flex items-baseline gap-2 mb-1 px-1">
+<span class="text-[10px] text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity">12:40 PM</span>
+<span class="text-xs font-bold text-slate-500 dark:text-slate-400">Me</span>
+</div>
+<div class="bg-primary text-white rounded-2xl rounded-br-none px-4 py-3 shadow-md shadow-primary/20">
+<p class="text-sm leading-relaxed">Not yet, just getting settled in. I'll take a look in about 10 minutes and send you my feedback. Are we still focusing on the onboarding flow first?</p>
+</div>
+</div>
+</div>
+<!-- Received Message -->
+<div class="flex gap-3 max-w-[80%] group">
+<div class="shrink-0 mt-auto mb-1">
+<div class="w-8 h-8 rounded-full bg-cover bg-center" data-alt="Alex Rivera mini avatar" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuDeX_jYlfrkBb2r9JHPp2aOlk5skUs8qTvorRG-hyfjpoM5_JPp3jSg8Ok5iUTiU1pAOTk-EG5BpeqAqh9j5MnEI8yEBXZIdMGOYioiPRnyPnOPRlz8dcnweaGTp87mKq3tUDH3Nz0PBgFqHu7LzzAxvpQWDOg-a0tR6LrkIiSO2A9PmaSbsWKprt4SFBEvvgt_kLXu9ozdQhiaZTak9nyWiz6-67wmrTNYo9zYCvKeCVJoXjIrKxmAaaGdl5Y5YzECpOq8COx9gGg')"></div>
+</div>
+<div>
+<div class="flex items-baseline gap-2 mb-1 px-1">
+<span class="text-xs font-bold text-slate-500 dark:text-slate-400">Alex Rivera</span>
+<span class="text-[10px] text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity">12:42 PM</span>
+</div>
+<div class="bg-slate-100 dark:bg-[#272546] rounded-2xl rounded-bl-none px-4 py-3 shadow-sm">
+<p class="text-sm leading-relaxed">Yes, onboarding is the priority. I added some comments to the Figma file for the transition animations. Let me know what you think about the timing.</p>
+</div>
+</div>
+</div>
+<!-- Sent Message -->
+<div class="flex flex-row-reverse gap-3 max-w-[80%] ml-auto group">
+<div class="shrink-0 mt-auto mb-1">
+<div class="w-8 h-8 rounded-full bg-cover bg-center" data-alt="My mini avatar" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuARuS9IKRUoA1BIVs5H_EHflCE7vcX4mJ1wMm0l2nboy-ub6egjbnuyhTQbtL6kgNLueHh7q2PLktQSqwHBElF3Wglq10wfzvL5KH3Tuf-AErikbj30XpwmZlFxP2Oxze_hiIMNo1ayhJlGOBnNw4nuLRLetVVSr3skYjayhU1uITUVRQ35RZ0YstIOdc6FzU_U7EoxXih1_lajQoP6ePmcpUWukiCqpYl1wF1yvowmezXgLn2aqLz8fA2ooNI2q5hQAzYgtrZsL-Q')"></div>
+</div>
+<div class="flex flex-col items-end">
+<div class="flex items-baseline gap-2 mb-1 px-1">
+<span class="text-[10px] text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity">12:45 PM</span>
+<span class="text-xs font-bold text-slate-500 dark:text-slate-400">Me</span>
+</div>
+<div class="bg-primary text-white rounded-2xl rounded-br-none px-4 py-3 shadow-md shadow-primary/20">
+<p class="text-sm leading-relaxed">Perfect. Checking it out now!</p>
+</div>
+<div class="flex items-center gap-1 mt-1">
+<span class="material-symbols-outlined text-[14px] text-primary">done_all</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Input Area -->
+<footer class="p-4 border-t border-slate-200 dark:border-[#272546] bg-white dark:bg-background-dark">
+<div class="max-w-4xl mx-auto flex items-end gap-3 bg-slate-100 dark:bg-[#272546] rounded-xl p-2 pr-3">
+<div class="flex items-center pb-1">
+<button class="p-2 text-slate-500 hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-[24px]">add_circle</span>
+</button>
+</div>
+<textarea class="flex-1 bg-transparent border-none focus:ring-0 resize-none py-3 text-sm placeholder:text-slate-400 dark:text-white max-h-32 overflow-y-auto" placeholder="Type a message..." rows="1"></textarea>
+<div class="flex items-center gap-1 pb-1">
+<button class="p-2 text-slate-500 hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-[24px]">mood</span>
+</button>
+<button class="bg-primary text-white rounded-lg p-2 flex items-center justify-center hover:opacity-90 transition-opacity">
+<span class="material-symbols-outlined text-[20px] font-bold">send</span>
+</button>
+</div>
+</div>
+<div class="mt-2 text-center">
+<p class="text-[10px] text-slate-400 font-medium">Press Enter to send, Shift + Enter for new line</p>
+</div>
+</footer>
+</main>
+</div>
+</body></html>

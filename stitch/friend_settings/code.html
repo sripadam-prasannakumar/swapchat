@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Chat Settings - User Profile</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#5048e5",
+                        "background-light": "#f6f6f8",
+                        "background-dark": "#0b0f19",
+                        "surface-dark": "#111927",
+                        "border-dark": "#2d3748",
+                        "danger": "#f04438"
+                    },
+                    fontFamily: {
+                        "display": ["Inter"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+<style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 min-h-screen flex items-center justify-center p-4">
+<!-- Settings Container -->
+<div class="w-full max-w-[480px] bg-white dark:bg-surface-dark rounded-xl shadow-2xl border border-slate-200 dark:border-border-dark overflow-hidden">
+<!-- Header Section -->
+<header class="flex items-center justify-between px-6 py-4 border-b border-slate-200 dark:border-border-dark">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-primary">settings</span>
+<h2 class="text-lg font-semibold tracking-tight">Chat Settings</h2>
+</div>
+<button class="p-2 hover:bg-slate-100 dark:hover:bg-primary/10 rounded-lg transition-colors">
+<span class="material-symbols-outlined text-slate-500 dark:text-slate-400">close</span>
+</button>
+</header>
+<!-- Profile Overview -->
+<div class="flex flex-col items-center py-8 px-6 border-b border-slate-200 dark:border-border-dark bg-slate-50/50 dark:bg-primary/5">
+<div class="relative group">
+<div class="size-24 rounded-full border-4 border-white dark:border-surface-dark shadow-lg overflow-hidden bg-primary/20">
+<img alt="Alex Johnson Profile" class="w-full h-full object-cover" data-alt="Portrait of a smiling young man with short hair" src="https://lh3.googleusercontent.com/aida-public/AB6AXuACcMkJh2uZarzITJwueVo2g8Fyv1ROIfzMuFfx0b2YM_gwnY8dw_2kzzPOMCN7XZE29Fh1IEiK9WyVTOb4pkN44DgpMYEIiE63wksx66JSfrxAzTfD0908i7eTcNoETmJMpST_rrZ9nEdiJDRtvc2rDTxiBagcvHg-QQA949bROvXVo-8rEekccSea7A9ZoI4Dwrt6yQI1BcSQ3CLQ8pe9mNcIBu3ZBJL1hM527IAQc5HoRem7uff5kwivT6SRo_46b-3_9fSxJBE"/>
+</div>
+<div class="absolute bottom-1 right-1 size-5 bg-green-500 border-2 border-white dark:border-surface-dark rounded-full" title="Online"></div>
+</div>
+<h3 class="mt-4 text-xl font-bold">Alex Johnson</h3>
+<p class="text-slate-500 dark:text-slate-400 text-sm">@alex_j • Active Now</p>
+</div>
+<!-- Scrollable Content -->
+<div class="p-2 max-h-[60vh] overflow-y-auto">
+<!-- General Actions -->
+<div class="space-y-1">
+<p class="px-4 py-2 text-xs font-bold text-slate-400 uppercase tracking-widest">Interaction</p>
+<!-- View Contact Info -->
+<button class="w-full flex items-center justify-between px-4 py-3 hover:bg-slate-100 dark:hover:bg-primary/10 rounded-lg transition-all group">
+<div class="flex items-center gap-4">
+<div class="size-10 flex items-center justify-center bg-slate-100 dark:bg-primary/20 text-slate-600 dark:text-primary rounded-lg group-hover:scale-110 transition-transform">
+<span class="material-symbols-outlined">person</span>
+</div>
+<span class="font-medium">View Contact Info</span>
+</div>
+<span class="material-symbols-outlined text-slate-400 group-hover:translate-x-1 transition-transform">chevron_right</span>
+</button>
+<!-- Search in Chat -->
+<button class="w-full flex items-center justify-between px-4 py-3 hover:bg-slate-100 dark:hover:bg-primary/10 rounded-lg transition-all group">
+<div class="flex items-center gap-4">
+<div class="size-10 flex items-center justify-center bg-slate-100 dark:bg-primary/20 text-slate-600 dark:text-primary rounded-lg group-hover:scale-110 transition-transform">
+<span class="material-symbols-outlined">search</span>
+</div>
+<span class="font-medium">Search in Chat</span>
+</div>
+<span class="material-symbols-outlined text-slate-400 group-hover:translate-x-1 transition-transform">chevron_right</span>
+</button>
+<!-- Mute Notifications -->
+<div class="w-full flex items-center justify-between px-4 py-3 hover:bg-slate-100 dark:hover:bg-primary/10 rounded-lg transition-all group">
+<div class="flex items-center gap-4">
+<div class="size-10 flex items-center justify-center bg-slate-100 dark:bg-primary/20 text-slate-600 dark:text-primary rounded-lg">
+<span class="material-symbols-outlined">notifications_off</span>
+</div>
+<span class="font-medium">Mute Notifications</span>
+</div>
+<!-- Toggle Switch -->
+<label class="relative inline-flex items-center cursor-pointer">
+<input class="sr-only peer" type="checkbox" value=""/>
+<div class="w-11 h-6 bg-slate-300 dark:bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+</label>
+</div>
+</div>
+<!-- Customization Section -->
+<div class="mt-4 space-y-1">
+<p class="px-4 py-2 text-xs font-bold text-slate-400 uppercase tracking-widest">Personalization</p>
+<!-- Change Chat Theme -->
+<button class="w-full flex items-center justify-between px-4 py-3 hover:bg-slate-100 dark:hover:bg-primary/10 rounded-lg transition-all group">
+<div class="flex items-center gap-4">
+<div class="size-10 flex items-center justify-center bg-slate-100 dark:bg-primary/20 text-slate-600 dark:text-primary rounded-lg group-hover:scale-110 transition-transform">
+<span class="material-symbols-outlined">palette</span>
+</div>
+<div class="text-left">
+<p class="font-medium">Change Chat Theme</p>
+<p class="text-xs text-slate-500">Currently: Indigo Glow</p>
+</div>
+</div>
+<div class="flex items-center gap-2">
+<div class="size-4 rounded-full bg-primary ring-2 ring-white dark:ring-border-dark"></div>
+<span class="material-symbols-outlined text-slate-400 group-hover:translate-x-1 transition-transform">chevron_right</span>
+</div>
+</button>
+</div>
+<!-- Danger Zone -->
+<div class="mt-4 mb-2 space-y-1">
+<p class="px-4 py-2 text-xs font-bold text-danger uppercase tracking-widest">Danger Zone</p>
+<!-- Clear Chat History -->
+<button class="w-full flex items-center justify-between px-4 py-3 hover:bg-danger/10 rounded-lg transition-all group">
+<div class="flex items-center gap-4 text-danger">
+<div class="size-10 flex items-center justify-center bg-danger/10 rounded-lg group-hover:bg-danger group-hover:text-white transition-colors">
+<span class="material-symbols-outlined">delete_sweep</span>
+</div>
+<span class="font-medium">Clear Chat History</span>
+</div>
+<span class="material-symbols-outlined text-danger/50">warning</span>
+</button>
+<!-- Block User -->
+<button class="w-full flex items-center justify-between px-4 py-3 hover:bg-danger/10 rounded-lg transition-all group">
+<div class="flex items-center gap-4 text-danger">
+<div class="size-10 flex items-center justify-center bg-danger/10 rounded-lg group-hover:bg-danger group-hover:text-white transition-colors">
+<span class="material-symbols-outlined">block</span>
+</div>
+<span class="font-medium">Block User</span>
+</div>
+<span class="material-symbols-outlined text-danger/50">block</span>
+</button>
+</div>
+</div>
+<!-- Footer -->
+<footer class="px-6 py-4 bg-slate-50 dark:bg-background-dark/50 text-center border-t border-slate-200 dark:border-border-dark">
+<p class="text-[11px] text-slate-400 uppercase tracking-tighter">Connected since January 2024</p>
+</footer>
+</div>
+</body></html>

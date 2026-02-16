@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>User Settings - ChatApp</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#5048e5",
+                        "background-light": "#f6f6f8",
+                        "background-dark": "#121121",
+                    },
+                    fontFamily: {
+                        "display": ["Inter"]
+                    },
+                    borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #272546;
+            border-radius: 10px;
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 min-h-screen">
+<div class="relative flex min-h-screen w-full flex-col overflow-x-hidden">
+<!-- Top Navigation -->
+<header class="sticky top-0 z-50 w-full border-b border-solid border-[#272546] bg-background-light/80 dark:bg-background-dark/80 backdrop-blur-md px-4 md:px-10 py-3">
+<div class="max-w-[1200px] mx-auto flex items-center justify-between">
+<div class="flex items-center gap-4">
+<div class="text-primary">
+<span class="material-symbols-outlined text-3xl">chat_bubble</span>
+</div>
+<h2 class="text-lg font-bold leading-tight tracking-tight">ChatApp</h2>
+</div>
+<div class="flex items-center gap-4 md:gap-8">
+<nav class="hidden md:flex items-center gap-8">
+<a class="text-sm font-medium hover:text-primary transition-colors" href="#">Home</a>
+<a class="text-sm font-medium hover:text-primary transition-colors" href="#">Messages</a>
+<a class="text-primary text-sm font-medium" href="#">Settings</a>
+</nav>
+<div class="h-10 w-10 rounded-full bg-cover bg-center border-2 border-primary/20" data-alt="User profile avatar close up" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuAH8_IalUZcCCnYK_tuc99V1GJMM2Y456l7pgKDCEeHm62AFTUzKEZvGXKpxowYrLXhBHdnr_UnSfvnWMZSxSyKFFkTLJFOQCkSGyWsEJ2qq2cGfX3Bw31p6dpK-P5dsJAJGXOu_zouW-MfxLgnOM2fbVY7JWcBlOKcPHLcXo_OtHfmTPDuR6FRV-yS3RqDg_4J-HBUeO8LTYsJx54LuaHeJBhKP4Wv-FdqUtH9QwVQDMuBKQVdh8ykmj_7EOeRs9qi9jwZHgFMlfM");'>
+</div>
+</div>
+</div>
+</header>
+<main class="flex-1 w-full max-w-[1200px] mx-auto px-4 md:px-10 py-8">
+<div class="mb-8">
+<h1 class="text-3xl font-black tracking-tight mb-2">Account Settings</h1>
+<p class="text-slate-500 dark:text-[#9795c6]">Manage your digital identity, security preferences, and app behavior.</p>
+</div>
+<div class="flex flex-col lg:flex-row gap-8">
+<!-- Sidebar Navigation -->
+<aside class="w-full lg:w-64 flex-shrink-0">
+<nav class="flex lg:flex-col gap-1 overflow-x-auto lg:overflow-visible pb-4 lg:pb-0 no-scrollbar">
+<a class="flex items-center gap-3 px-4 py-3 rounded-lg bg-primary text-white font-medium transition-all min-w-max lg:min-w-0" href="#profile">
+<span class="material-symbols-outlined">person</span>
+<span>Profile</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-primary/10 text-slate-600 dark:text-[#9795c6] dark:hover:text-white font-medium transition-all min-w-max lg:min-w-0" href="#notifications">
+<span class="material-symbols-outlined">notifications</span>
+<span>Notifications</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-primary/10 text-slate-600 dark:text-[#9795c6] dark:hover:text-white font-medium transition-all min-w-max lg:min-w-0" href="#security">
+<span class="material-symbols-outlined">shield</span>
+<span>Security</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-primary/10 text-slate-600 dark:text-[#9795c6] dark:hover:text-white font-medium transition-all min-w-max lg:min-w-0" href="#general">
+<span class="material-symbols-outlined">settings</span>
+<span>General</span>
+</a>
+</nav>
+</aside>
+<!-- Content Area -->
+<div class="flex-1 space-y-12 pb-24">
+<!-- Profile Section -->
+<section class="scroll-mt-24" id="profile">
+<div class="flex items-center gap-2 mb-6">
+<span class="material-symbols-outlined text-primary">person</span>
+<h2 class="text-xl font-bold">Profile</h2>
+</div>
+<div class="bg-white dark:bg-[#1b1a2e] rounded-xl border border-slate-200 dark:border-[#272546] p-6">
+<div class="flex flex-col md:flex-row gap-8 items-start">
+<div class="relative group">
+<div class="h-32 w-32 rounded-full border-4 border-primary/10 overflow-hidden bg-slate-100 dark:bg-[#272546]">
+<div class="h-full w-full bg-cover bg-center" data-alt="Current user circular profile photo" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuB8Iq24CiVGVa2R-eFq-q__R4vIFb1pDAQYRGoadAMHV4TcwuijNy-cEt-nak8koKVmmofQbSAmOfW3wpx_lzMHAZAyiy64yq6xf3YyhsO46IoXaMXmrReIPWzdO_2CT4QZp1_RV8YX9x1hydkUxSzd2UoqanROZ3Pe4oXEw48K4UR_rSe3NwTI0_LbYhyqZbIBOAF5a56y1aMEqMeMY3-tKO4f3eezypkwzSjyPtP1gkszmgLALC4W2jiYqKaSUfWK3doRW2GqaIE");'>
+</div>
+</div>
+<button class="absolute bottom-0 right-0 bg-primary text-white p-2 rounded-full shadow-lg hover:scale-105 transition-transform">
+<span class="material-symbols-outlined text-sm">photo_camera</span>
+</button>
+</div>
+<div class="flex-1 w-full space-y-4">
+<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+<div class="space-y-2">
+<label class="text-sm font-semibold text-slate-600 dark:text-[#9795c6]">Display Name</label>
+<input class="w-full bg-slate-50 dark:bg-[#272546] border-slate-200 dark:border-transparent rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-primary outline-none transition-all" type="text" value="Alex Johnson"/>
+</div>
+<div class="space-y-2">
+<label class="text-sm font-semibold text-slate-600 dark:text-[#9795c6]">Email Address</label>
+<input class="w-full bg-slate-100 dark:bg-[#131221] border-slate-200 dark:border-transparent text-slate-400 rounded-lg px-4 py-2.5 cursor-not-allowed" disabled="" type="email" value="alex.j@example.com"/>
+</div>
+</div>
+<div class="space-y-2">
+<label class="text-sm font-semibold text-slate-600 dark:text-[#9795c6]">Bio</label>
+<textarea class="w-full bg-slate-50 dark:bg-[#272546] border-slate-200 dark:border-transparent rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-primary outline-none transition-all resize-none" placeholder="Tell us a bit about yourself..." rows="3">Product Designer &amp; Coffee Enthusiast. Always building something new.</textarea>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Notifications Section -->
+<section class="scroll-mt-24" id="notifications">
+<div class="flex items-center gap-2 mb-6">
+<span class="material-symbols-outlined text-primary">notifications</span>
+<h2 class="text-xl font-bold">Notifications</h2>
+</div>
+<div class="bg-white dark:bg-[#1b1a2e] rounded-xl border border-slate-200 dark:border-[#272546] divide-y divide-slate-100 dark:divide-[#272546]">
+<div class="flex items-center justify-between p-6">
+<div>
+<p class="font-semibold">Desktop Alerts</p>
+<p class="text-sm text-slate-500 dark:text-[#9795c6]">Receive push notifications on your browser</p>
+</div>
+<button class="relative inline-flex h-6 w-11 items-center rounded-full bg-primary">
+<span class="inline-block h-4 w-4 translate-x-6 transform rounded-full bg-white transition"></span>
+</button>
+</div>
+<div class="flex items-center justify-between p-6">
+<div>
+<p class="font-semibold">Sound Effects</p>
+<p class="text-sm text-slate-500 dark:text-[#9795c6]">Play a sound for incoming messages</p>
+</div>
+<button class="relative inline-flex h-6 w-11 items-center rounded-full bg-primary">
+<span class="inline-block h-4 w-4 translate-x-6 transform rounded-full bg-white transition"></span>
+</button>
+</div>
+<div class="flex items-center justify-between p-6">
+<div>
+<p class="font-semibold">Email Digest</p>
+<p class="text-sm text-slate-500 dark:text-[#9795c6]">Get a weekly summary of missed activity</p>
+</div>
+<button class="relative inline-flex h-6 w-11 items-center rounded-full bg-slate-300 dark:bg-[#272546]">
+<span class="inline-block h-4 w-4 translate-x-1 transform rounded-full bg-white transition"></span>
+</button>
+</div>
+</div>
+</section>
+<!-- Security Section -->
+<section class="scroll-mt-24" id="security">
+<div class="flex items-center gap-2 mb-6">
+<span class="material-symbols-outlined text-primary">lock</span>
+<h2 class="text-xl font-bold">Security</h2>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+<div class="bg-white dark:bg-[#1b1a2e] rounded-xl border border-slate-200 dark:border-[#272546] p-6 space-y-4">
+<h3 class="font-bold flex items-center gap-2">
+<span class="material-symbols-outlined text-sm">key</span>
+                                    Change Password
+                                </h3>
+<div class="space-y-3">
+<input class="w-full bg-slate-50 dark:bg-[#272546] border-slate-200 dark:border-transparent rounded-lg px-4 py-2 focus:ring-2 focus:ring-primary outline-none" placeholder="Current Password" type="password"/>
+<input class="w-full bg-slate-50 dark:bg-[#272546] border-slate-200 dark:border-transparent rounded-lg px-4 py-2 focus:ring-2 focus:ring-primary outline-none" placeholder="New Password" type="password"/>
+<button class="w-full py-2 bg-slate-100 dark:bg-[#272546] hover:bg-slate-200 dark:hover:bg-[#343163] text-sm font-bold rounded-lg transition-colors">Update Password</button>
+</div>
+</div>
+<div class="bg-white dark:bg-[#1b1a2e] rounded-xl border border-slate-200 dark:border-[#272546] p-6 flex flex-col justify-between">
+<div class="space-y-2">
+<h3 class="font-bold flex items-center gap-2">
+<span class="material-symbols-outlined text-sm">verified_user</span>
+                                        Two-Factor Auth
+                                    </h3>
+<p class="text-sm text-slate-500 dark:text-[#9795c6]">Add an extra layer of security to your account by requiring a code from your phone.</p>
+</div>
+<div class="mt-4 flex items-center justify-between bg-primary/5 p-3 rounded-lg border border-primary/10">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary text-xl">check_circle</span>
+<span class="text-sm font-semibold">Enabled</span>
+</div>
+<button class="text-xs text-primary font-bold hover:underline">Manage</button>
+</div>
+</div>
+</div>
+</section>
+<!-- General Section -->
+<section class="scroll-mt-24" id="general">
+<div class="flex items-center gap-2 mb-6">
+<span class="material-symbols-outlined text-primary">settings</span>
+<h2 class="text-xl font-bold">General</h2>
+</div>
+<div class="bg-white dark:bg-[#1b1a2e] rounded-xl border border-slate-200 dark:border-[#272546] p-6 space-y-8">
+<div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+<div class="space-y-3">
+<label class="text-sm font-semibold text-slate-600 dark:text-[#9795c6]">Language</label>
+<select class="w-full bg-slate-50 dark:bg-[#272546] border-slate-200 dark:border-transparent rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-primary outline-none appearance-none">
+<option>English (US)</option>
+<option>Spanish</option>
+<option>French</option>
+<option>German</option>
+</select>
+</div>
+<div class="space-y-3">
+<label class="text-sm font-semibold text-slate-600 dark:text-[#9795c6]">Timezone</label>
+<select class="w-full bg-slate-50 dark:bg-[#272546] border-slate-200 dark:border-transparent rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-primary outline-none appearance-none">
+<option>(GMT-08:00) Pacific Time</option>
+<option>(GMT+00:00) UTC</option>
+<option>(GMT+01:00) Central Europe</option>
+</select>
+</div>
+</div>
+<div class="space-y-4">
+<label class="text-sm font-semibold text-slate-600 dark:text-[#9795c6]">Appearance Theme</label>
+<div class="grid grid-cols-3 gap-4">
+<button class="flex flex-col items-center gap-2 p-4 rounded-xl border-2 border-primary bg-slate-50 dark:bg-[#272546] transition-all">
+<div class="h-12 w-full rounded bg-slate-900 border border-slate-700 overflow-hidden relative">
+<div class="absolute inset-y-0 left-0 w-1/3 bg-slate-800"></div>
+</div>
+<span class="text-xs font-bold">Dark</span>
+</button>
+<button class="flex flex-col items-center gap-2 p-4 rounded-xl border-2 border-transparent hover:border-slate-200 dark:hover:border-[#343163] bg-slate-50 dark:bg-[#131221] transition-all">
+<div class="h-12 w-full rounded bg-white border border-slate-200 overflow-hidden relative">
+<div class="absolute inset-y-0 left-0 w-1/3 bg-slate-50"></div>
+</div>
+<span class="text-xs font-bold">Light</span>
+</button>
+<button class="flex flex-col items-center gap-2 p-4 rounded-xl border-2 border-transparent hover:border-slate-200 dark:hover:border-[#343163] bg-slate-50 dark:bg-[#131221] transition-all">
+<div class="h-12 w-full rounded bg-gradient-to-r from-primary/40 to-primary/80 border border-primary/20"></div>
+<span class="text-xs font-bold">System</span>
+</button>
+</div>
+</div>
+</div>
+</section>
+</div>
+</div>
+</main>
+<!-- Save Floating Bar -->
+<footer class="fixed bottom-0 left-0 right-0 z-50 bg-white/80 dark:bg-background-dark/80 backdrop-blur-xl border-t border-slate-200 dark:border-[#272546] py-4 px-6">
+<div class="max-w-[1200px] mx-auto flex items-center justify-between">
+<p class="hidden md:block text-sm text-slate-500 dark:text-[#9795c6]">Careful, you have unsaved changes!</p>
+<div class="flex items-center gap-3 w-full md:w-auto">
+<button class="flex-1 md:flex-none px-6 py-2.5 rounded-lg text-sm font-bold border border-slate-200 dark:border-[#272546] hover:bg-slate-50 dark:hover:bg-[#272546] transition-colors">Discard</button>
+<button class="flex-1 md:flex-none px-8 py-2.5 rounded-lg text-sm font-bold bg-primary text-white hover:opacity-90 shadow-lg shadow-primary/20 transition-all">Save Changes</button>
+</div>
+</div>
+</footer>
+</div>
+</body></html>
