@@ -404,7 +404,12 @@ const Chat = () => {
         setCallStatus('incoming');
       }
 
-      if (data.type === 'answer' && data.caller !== currentUser.uid && callStatus === 'calling') {
+      // 🚨 FIX: Allow the CALLER to process the answer!
+      // When I am calling, callStatus is 'calling'.
+      // The answer is for ME. I am the caller. 
+      // So data.caller IS currentUser.uid. 
+      // We remove the check `data.caller !== currentUser.uid`.
+      if (data.type === 'answer' && callStatus === 'calling') {
         if (peerConnectionRef.current) {
           await peerConnectionRef.current.setRemoteDescription(new RTCSessionDescription(data.sdp));
           setCallStatus('connected');
