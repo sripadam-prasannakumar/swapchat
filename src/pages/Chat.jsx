@@ -587,16 +587,16 @@ const Chat = () => {
       console.log("Received remote track:", event.track.kind);
       event.track.onended = () => console.log("Track ended");
 
-      if (event.streams && event.streams[0]) {
-        console.log("Setting remote stream from event.streams[0]");
-        setRemoteStream(event.streams[0]);
-      } else {
-        // Build stream from track if not provided
-        console.log("Creating new stream from track");
-        const newStream = new MediaStream();
-        newStream.addTrack(event.track);
-        setRemoteStream(newStream);
-      }
+      setRemoteStream((prev) => {
+        // Create a new stream based on existing tracks + new track
+        // This ensures that if Audio arrives first, then Video, we merge them.
+        const newStream = new MediaStream(prev ? prev.getTracks() : []);
+
+        if (!newStream.getTracks().some(t => t.id === event.track.id)) {
+          newStream.addTrack(event.track);
+        }
+        return newStream;
+      });
     };
 
     pc.onicecandidate = (event) => {
