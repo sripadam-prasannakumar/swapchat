@@ -2,102 +2,96 @@
 @tailwind components;
 @tailwind utilities;
 
-.container {
-  display: flex;
-  height: 100vh;
-  justify-content: center;
-  align-items: center;
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap');
+
+:root {
+  /* Premium Design System Tokens */
+  --primary: #7c3aed;
+  --primary-light: #a78bfa;
+  --primary-dark: #5b21b6;
+
+  --bg-light: #f8fafc;
+  --bg-dark: #0f172a;
+
+  --text-light: #0f172a;
+  --text-dark: #f8fafc;
+
+  --border-light: rgba(226, 232, 240, 0.6);
+  --border-dark: rgba(255, 255, 255, 0.05);
+
+  --glass-bg: rgba(255, 255, 255, 0.7);
+  --glass-bg-dark: rgba(15, 23, 42, 0.8);
+
+  --shadow-premium: 0 10px 40px -10px rgba(0, 0, 0, 0.1);
+  --transition-smooth: 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-.form {
-  width: 300px;
-  padding: 20px;
-  border: 1px solid #ddd;
-  border-radius: 8px;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
+@layer base {
+  body {
+    @apply antialiased font-display bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100;
+  }
 }
 
-input {
-  padding: 10px;
+@layer components {
+
+  /* Premium UI Components */
+  .glass-morphism {
+    @apply backdrop-blur-xl bg-white/70 dark:bg-slate-900/80 border border-white/20 dark:border-white/5 shadow-glass;
+  }
+
+  .premium-btn-primary {
+    @apply flex items-center justify-center gap-2 px-6 py-3 rounded-2xl bg-primary text-white font-bold transition-all shadow-premium hover:shadow-premium-hover hover:-translate-y-0.5 active:scale-95;
+  }
+
+  .premium-btn-secondary {
+    @apply flex items-center justify-center gap-2 px-6 py-3 rounded-2xl bg-slate-100 dark:bg-surface-dark text-slate-700 dark:text-slate-200 font-bold transition-all hover:bg-slate-200 dark:hover:bg-slate-800;
+  }
+
+  .settings-input {
+    @apply w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-border-dark bg-white dark:bg-slate-900 outline-none transition-all focus:ring-2 focus:ring-primary/20 focus:border-primary/50;
+  }
+
+  .premium-switch {
+    @apply relative inline-flex h-6 w-11 items-center rounded-full transition-colors cursor-pointer;
+  }
+
+  /* Custom Scrollbar */
+  .custom-scrollbar::-webkit-scrollbar {
+    @apply w-1.5;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-track {
+    @apply bg-transparent;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    @apply bg-slate-200 dark:bg-slate-800 rounded-full hover:bg-slate-300 dark:hover:bg-slate-700;
+  }
 }
 
-button {
-  padding: 10px;
-  background: #2563eb;
-  color: white;
-  border: none;
-  border-radius: 5px;
-  cursor: pointer;
+/* Material Symbols Adjustments */
+.material-symbols-outlined {
+  font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
 }
 
-.error {
-  color: red;
+/* Animations Helper */
+.animate-float {
+  animation: float 6s ease-in-out infinite;
 }
 
-.link {
-  color: blue;
-  cursor: pointer;
+@keyframes float {
+
+  0%,
+  100% {
+    transform: translateY(0px);
+  }
+
+  50% {
+    transform: translateY(-10px);
+  }
 }
 
-/* ===== GLOBAL DARK MODE ===== */
-body.dark {
-  background-color: #0b141a;
-  color: #e9edef;
-}
-
-/* CHAT AREA */
-body.dark .chat-area {
-  background-color: #0b141a;
-}
-
-/* CHAT HEADER */
-body.dark .chat-header {
-  background-color: #202c33;
-  border-bottom: 1px solid #2a3942;
-}
-
-/* MESSAGES */
-body.dark .messages {
-  background-color: #0b141a;
-}
-
-/* MESSAGE BUBBLES */
-body.dark .message.other .bubble {
-  background-color: #202c33;
-  color: #e9edef;
-}
-
-body.dark .message.me .bubble {
-  background-color: #005c4b;
-  color: #ffffff;
-}
-
-/* INPUT */
-body.dark .input {
-  background-color: #202c33;
-  border-top: 1px solid #2a3942;
-}
-
-body.dark .input input {
-  background-color: #2a3942;
-  color: white;
-  border: none;
-}
-
-/* LEFT NAV */
-body.dark .leftnav {
-  background-color: #202c33;
-  border-right: 1px solid #2a3942;
-}
-
-/* SIDEBAR */
-body.dark .sidebar {
-  background-color: #111b21;
-}
-
-/* EMOJI PICKER */
-body.dark .emoji-mart {
-  background-color: #202c33 !important;
+/* Dark mode forced class support */
+.dark body {
+  @apply bg-background-dark text-slate-100;
 }

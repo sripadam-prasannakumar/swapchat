@@ -125,6 +125,315 @@
   box-shadow: var(--bubble-shadow-other);
 }
 
-[class*="theme-3d-"] .bubble:hover {
-  transform: translateY(-2px) scale(1.02);
+/* ================= INSTAGRAM THEME ================= */
+
+.theme-instagram {
+  --bg-chat: linear-gradient(160deg,
+      #1a0533 0%,
+      #3b0764 20%,
+      #7e0d3d 45%,
+      #b91c1c 70%,
+      #c2410c 100%);
+  --bubble-me: linear-gradient(135deg, #833ab4 0%, #fd1d1d 55%, #fcb045 100%);
+  --bubble-other: rgba(30, 10, 50, 0.75);
+  --text-primary: #ffffff;
+  --text-secondary: rgba(255, 255, 255, 0.75);
+  --text-on-accent: #ffffff;
+  --bubble-shadow-me:
+    0 4px 20px rgba(131, 58, 180, 0.5),
+    0 0 40px rgba(253, 29, 29, 0.2);
+  --bubble-shadow-other:
+    0 4px 16px rgba(0, 0, 0, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
 }
+
+.theme-instagram .message.me .bubble {
+  box-shadow: var(--bubble-shadow-me);
+  border: 1px solid rgba(253, 29, 29, 0.3);
+}
+
+.theme-instagram .message.other .bubble {
+  background: var(--bubble-other);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: var(--bubble-shadow-other);
+}
+
+.theme-instagram .bubble:hover {
+  transform: translateY(-2px) scale(1.01);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+
+/* ================= ANIMATED THEMES ================= */
+
+/* ─ AURORA ─────────────────────────────────────────────────── */
+@keyframes auroraShift {
+  0% {
+    background-position: 0% 50%;
+  }
+
+  50% {
+    background-position: 100% 50%;
+  }
+
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+.theme-aurora {
+  --bubble-me: linear-gradient(135deg, #4ade80, #06b6d4);
+  --bubble-other: rgba(15, 25, 40, 0.82);
+  --text-primary: #ffffff;
+  --text-secondary: rgba(200, 240, 220, 0.85);
+  --text-on-accent: #ffffff;
+  --bubble-shadow-me: 0 4px 20px rgba(74, 222, 128, 0.5), 0 0 30px rgba(6, 182, 212, 0.2);
+  --bubble-shadow-other: 0 4px 14px rgba(0, 0, 0, 0.4);
+  --bg-chat: #0d1b2a;
+}
+
+/* Higher specificity overrides .chat-area { background: var(--bg-chat) } */
+.chat-area.theme-aurora {
+  background: linear-gradient(270deg, #0d1b2a, #0a3d2e, #0e4d6b, #1a1035, #2d0a4e, #0a3d2e) !important;
+  background-size: 400% 400% !important;
+  animation: auroraShift 12s ease infinite;
+}
+
+.theme-aurora .message.me .bubble {
+  background: var(--bubble-me);
+  box-shadow: var(--bubble-shadow-me);
+}
+
+.theme-aurora .message.other .bubble {
+  background: var(--bubble-other);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: var(--bubble-shadow-other);
+}
+
+
+/* ─ GALAXY ──────────────────────────────────────────────────── */
+@keyframes galaxyFloat {
+  0% {
+    background-position: 0% 0%;
+  }
+
+  25% {
+    background-position: 100% 50%;
+  }
+
+  50% {
+    background-position: 50% 100%;
+  }
+
+  75% {
+    background-position: 0% 50%;
+  }
+
+  100% {
+    background-position: 0% 0%;
+  }
+}
+
+@keyframes starGlow {
+
+  0%,
+  100% {
+    opacity: 0.6;
+  }
+
+  50% {
+    opacity: 1;
+  }
+}
+
+.theme-galaxy {
+  --bubble-me: linear-gradient(135deg, #7c3aed, #4f46e5);
+  --bubble-other: rgba(10, 8, 30, 0.82);
+  --text-primary: #e2e8f0;
+  --text-secondary: rgba(200, 195, 240, 0.8);
+  --text-on-accent: #ffffff;
+  --bubble-shadow-me: 0 4px 24px rgba(124, 58, 237, 0.6), 0 0 30px rgba(99, 102, 241, 0.3);
+  --bubble-shadow-other: 0 4px 14px rgba(0, 0, 0, 0.5);
+  --bg-chat: #050510;
+}
+
+.chat-area.theme-galaxy {
+  background: radial-gradient(ellipse at 20% 30%, #1a0a4e 0%, #050510 50%, #0b0020 100%),
+    radial-gradient(ellipse at 80% 70%, #0a0535 0%, transparent 60%) !important;
+  background-size: 300% 300%, 100% 100% !important;
+  animation: galaxyFloat 20s ease infinite, starGlow 4s ease-in-out infinite;
+}
+
+.theme-galaxy .message.me .bubble {
+  background: var(--bubble-me);
+  box-shadow: var(--bubble-shadow-me);
+}
+
+.theme-galaxy .message.other .bubble {
+  background: var(--bubble-other);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(150, 130, 255, 0.15);
+  box-shadow: var(--bubble-shadow-other);
+}
+
+
+/* ─ FIRE ────────────────────────────────────────────────────── */
+@keyframes fireFlicker {
+  0% {
+    background-position: 50% 0%;
+  }
+
+  25% {
+    background-position: 60% 20%;
+  }
+
+  50% {
+    background-position: 45% 40%;
+  }
+
+  75% {
+    background-position: 55% 10%;
+  }
+
+  100% {
+    background-position: 50% 0%;
+  }
+}
+
+.theme-fire {
+  --bubble-me: linear-gradient(135deg, #f97316, #ef4444);
+  --bubble-other: rgba(30, 8, 0, 0.85);
+  --text-primary: #fff7ed;
+  --text-secondary: rgba(254, 215, 170, 0.85);
+  --text-on-accent: #ffffff;
+  --bubble-shadow-me: 0 4px 20px rgba(249, 115, 22, 0.6), 0 0 30px rgba(239, 68, 68, 0.3);
+  --bubble-shadow-other: 0 4px 14px rgba(0, 0, 0, 0.5);
+  --bg-chat: #0a0200;
+}
+
+.chat-area.theme-fire {
+  background: linear-gradient(180deg,
+      #0a0200 0%,
+      #2d0800 20%,
+      #7c1500 50%,
+      #c2410c 80%,
+      #f97316 100%) !important;
+  background-size: 200% 200% !important;
+  animation: fireFlicker 3s ease-in-out infinite;
+}
+
+.theme-fire .message.me .bubble {
+  background: var(--bubble-me);
+  box-shadow: var(--bubble-shadow-me);
+}
+
+.theme-fire .message.other .bubble {
+  background: var(--bubble-other);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 100, 0, 0.15);
+  box-shadow: var(--bubble-shadow-other);
+}
+
+
+/* ─ MATRIX ──────────────────────────────────────────────────── */
+@keyframes matrixScroll {
+  0% {
+    background-position: 0% 0%;
+  }
+
+  100% {
+    background-position: 0% 100%;
+  }
+}
+
+.theme-matrix {
+  --bubble-me: linear-gradient(135deg, #00cc33, #00ff41);
+  --bubble-other: rgba(0, 20, 5, 0.9);
+  --text-primary: #00ff41;
+  --text-secondary: rgba(0, 200, 60, 0.8);
+  --text-on-accent: #000;
+  --bubble-shadow-me: 0 4px 20px rgba(0, 255, 65, 0.5), 0 0 30px rgba(0, 204, 51, 0.3);
+  --bubble-shadow-other: 0 4px 14px rgba(0, 0, 0, 0.7), 0 0 10px rgba(0, 255, 65, 0.1);
+  --bg-chat: #000500;
+}
+
+.chat-area.theme-matrix {
+  background: repeating-linear-gradient(0deg,
+      #000500,
+      #000500 4px,
+      rgba(0, 255, 65, 0.04) 4px,
+      rgba(0, 255, 65, 0.04) 6px) !important;
+  background-size: 100% 60px !important;
+  animation: matrixScroll 2s linear infinite;
+}
+
+.theme-matrix .message.me .bubble {
+  background: var(--bubble-me);
+  color: #000;
+  box-shadow: var(--bubble-shadow-me);
+}
+
+.theme-matrix .message.other .bubble {
+  background: var(--bubble-other);
+  color: var(--text-primary);
+  border: 1px solid rgba(0, 255, 65, 0.2);
+  box-shadow: var(--bubble-shadow-other);
+}
+
+.theme-matrix .bubble:hover {
+  box-shadow: 0 0 24px rgba(0, 255, 65, 0.6);
+}
+
+
+/* ─ SAKURA ──────────────────────────────────────────────────── */
+@keyframes sakuraDrift {
+  0% {
+    background-position: 0% 50%;
+  }
+
+  50% {
+    background-position: 100% 50%;
+  }
+
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+.theme-sakura {
+  --bubble-me: linear-gradient(135deg, #f9a8d4, #ec4899);
+  --bubble-other: rgba(255, 240, 248, 0.88);
+  --text-primary: #4a1942;
+  --text-secondary: #9d4e84;
+  --text-on-accent: #ffffff;
+  --bubble-shadow-me: 0 4px 20px rgba(236, 72, 153, 0.4);
+  --bubble-shadow-other: 0 4px 14px rgba(200, 100, 150, 0.2);
+  --bg-chat: #fff0f7;
+}
+
+.chat-area.theme-sakura {
+  background: linear-gradient(135deg,
+      #fff0f7 0%,
+      #fce7f3 25%,
+      #fbcfe8 50%,
+      #fce7f3 75%,
+      #fff0f7 100%) !important;
+  background-size: 400% 400% !important;
+  animation: sakuraDrift 8s ease-in-out infinite;
+}
+
+.theme-sakura .message.me .bubble {
+  background: var(--bubble-me);
+  box-shadow: var(--bubble-shadow-me);
+}
+
+.theme-sakura .message.other .bubble {
+  background: var(--bubble-other);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(236, 72, 153, 0.15);
+  box-shadow: var(--bubble-shadow-other);
+}
+

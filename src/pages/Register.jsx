@@ -3,7 +3,7 @@ import { ref, set } from "firebase/database";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { auth, db } from "../firebase";
-import logo from "../logo.svg";
+import "./Auth.css";
 
 const Register = () => {
   const [name, setName] = useState("");
@@ -15,16 +15,16 @@ const Register = () => {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [agreedToTerms, setAgreedToTerms] = useState(false);
+  const [focused, setFocused] = useState(null);
 
   const navigate = useNavigate();
 
-  // Password validation rules
   const rules = [
-    { label: "Minimum 8 characters", test: (p) => p.length >= 8 },
-    { label: "One uppercase letter (A-Z)", test: (p) => /[A-Z]/.test(p) },
-    { label: "One lowercase letter (a-z)", test: (p) => /[a-z]/.test(p) },
-    { label: "One number (0-9)", test: (p) => /\d/.test(p) },
-    { label: "One special character (@$!%*?&)", test: (p) => /[@$!%*?&]/.test(p) },
+    { label: "8+ characters", test: (p) => p.length >= 8 },
+    { label: "Uppercase (A-Z)", test: (p) => /[A-Z]/.test(p) },
+    { label: "Lowercase (a-z)", test: (p) => /[a-z]/.test(p) },
+    { label: "Number (0-9)", test: (p) => /\d/.test(p) },
+    { label: "Special (@$!%*?&)", test: (p) => /[@$!%*?&]/.test(p) },
   ];
 
   const allRulesPassed = rules.every((rule) => rule.test(password));
@@ -37,22 +37,18 @@ const Register = () => {
       setError("You must agree to the Terms of Service.");
       return;
     }
-
     if (!allRulesPassed) {
-      setError("Password rules not satisfied");
+      setError("Password does not meet all requirements.");
       return;
     }
-
     if (password !== confirm) {
-      setError("Passwords do not match");
+      setError("Passwords do not match.");
       return;
     }
 
     setLoading(true);
-
     try {
       const res = await createUserWithEmailAndPassword(auth, email, password);
-
       await set(ref(db, `users/${res.user.uid}`), {
         name,
         email,
@@ -60,12 +56,10 @@ const Register = () => {
         profile_image: "",
         createdAt: Date.now(),
       });
-
-      // alert("Registration successful! Please login.");
-      navigate("/chat"); // Directly navigate to chat after registration
+      navigate("/chat");
     } catch (err) {
       if (err.code === "auth/email-already-in-use") {
-        setError("Email already in use. Please login.");
+        setError("Email already in use. Please log in.");
       } else {
         setError(err.message);
       }
@@ -75,201 +69,234 @@ const Register = () => {
   };
 
   return (
-    <div className="bg-background-light dark:bg-background-dark min-h-screen flex flex-col font-display text-slate-900 dark:text-white">
-      {/* Top Navigation Bar */}
-      <header className="w-full border-b border-primary/20 bg-background-light/50 dark:bg-background-dark/50 backdrop-blur-md sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-2 text-primary">
-            <img src={logo} alt="Logo" className="w-8 h-8" />
-            <span className="text-xl font-bold tracking-tight text-slate-900 dark:text-white">SwapChat</span>
+    <div className="auth-page auth-page--slide-in">
+      {/* Animated background orbs */}
+      <div className="auth-orb auth-orb-1" />
+      <div className="auth-orb auth-orb-2" />
+      <div className="auth-orb auth-orb-3" />
+      <div className="auth-grid" />
+
+      <div className="auth-container auth-container--register">
+        {/* Left brand panel */}
+        <div className="auth-brand-panel">
+          <div className="auth-brand-content">
+            <div className="auth-logo-wrap">
+              <span className="material-symbols-outlined auth-logo-icon">person_add</span>
+            </div>
+            <h1 className="auth-brand-title">Join SwapChat</h1>
+            <p className="auth-brand-subtitle">
+              Create your account and start connecting with people around the world instantly.
+            </p>
+            <div className="auth-brand-features">
+              {[
+                { icon: "shield", label: "Secure & private" },
+                { icon: "group", label: "Connect with anyone" },
+                { icon: "notifications", label: "Real-time notifications" },
+              ].map((f) => (
+                <div key={f.icon} className="auth-feature-item">
+                  <span className="material-symbols-outlined auth-feature-icon">{f.icon}</span>
+                  <span>{f.label}</span>
+                </div>
+              ))}
+            </div>
           </div>
-          <button onClick={() => navigate('/login')} className="text-sm font-medium text-primary hover:text-primary/80 transition-colors">
-            Log In
-          </button>
+          <div className="auth-brand-glow" />
         </div>
-      </header>
 
-      <main className="flex-1 flex items-center justify-center p-6">
-        <div className="w-full max-w-md">
-          {/* Branding & Title */}
-          <div className="text-center mb-8">
-            <h1 className="text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white mb-2">Create Account</h1>
-            <p className="text-slate-500 dark:text-white/60">Join the conversation and connect with others.</p>
-          </div>
-
-          {/* Registration Card */}
-          <div className="bg-white dark:bg-primary/5 border border-slate-200 dark:border-primary/20 rounded-xl p-8 shadow-2xl backdrop-blur-sm">
-            <form onSubmit={handleRegister} className="space-y-5">
-              {/* Full Name */}
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-slate-700 dark:text-white/80 block">Full Name</label>
-                <div className="relative">
-                  <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-white/40 text-xl">person</span>
-                  <input
-                    className="w-full bg-slate-50 dark:bg-background-dark/50 border border-slate-300 dark:border-primary/20 rounded-lg py-3 pl-11 pr-4 text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-white/30 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all"
-                    placeholder="Enter your full name"
-                    type="text"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    required
-                  />
-                </div>
+        {/* Right form panel */}
+        <div className="auth-form-panel auth-form-panel--scroll">
+          <div className="auth-card auth-card--wide">
+            <div className="auth-card-glow" />
+            <div className="auth-card-inner">
+              <div className="auth-card-header">
+                <h2 className="auth-card-title">Create account</h2>
+                <p className="auth-card-subtitle">Fill in the details below to get started</p>
               </div>
 
-              {/* Email */}
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-slate-700 dark:text-white/80 block">Email Address</label>
-                <div className="relative">
-                  <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-white/40 text-xl">mail</span>
-                  <input
-                    className="w-full bg-slate-50 dark:bg-background-dark/50 border border-slate-300 dark:border-primary/20 rounded-lg py-3 pl-11 pr-4 text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-white/30 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all"
-                    placeholder="name@example.com"
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    required
-                  />
-                </div>
-              </div>
-
-              {/* Password */}
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-slate-700 dark:text-white/80 block">Password</label>
-                <div className="relative">
-                  <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-white/40 text-xl">lock</span>
-                  <input
-                    className="w-full bg-slate-50 dark:bg-background-dark/50 border border-slate-300 dark:border-primary/20 rounded-lg py-3 pl-11 pr-12 text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-white/30 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all"
-                    placeholder="Create a strong password"
-                    type={showPassword ? "text" : "password"}
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    required
-                  />
-                  <button
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-white/40 hover:text-primary dark:hover:text-white transition-colors"
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                  >
-                    <span className="material-symbols-outlined text-xl">{showPassword ? 'visibility_off' : 'visibility'}</span>
-                  </button>
-                </div>
-                {/* Password Rules Indicators */}
-                {password && (
-                  <div className="grid grid-cols-2 gap-2 mt-2">
-                    {rules.map((rule, index) => {
-                      const passed = rule.test(password);
-                      return (
-                        <div key={index} className={`flex items-center gap-1 text-[10px] ${passed ? "text-green-500" : "text-slate-400"}`}>
-                          <span className="material-symbols-outlined text-[12px]">{passed ? "check_circle" : "cancel"}</span>
-                          <span>{rule.label}</span>
-                        </div>
-                      );
-                    })}
+              <form onSubmit={handleRegister} className="auth-form">
+                {/* Full Name */}
+                <div className={`auth-field ${focused === 'name' ? 'auth-field--focused' : ''} ${name ? 'auth-field--filled' : ''}`}>
+                  <label className="auth-label">Full Name</label>
+                  <div className="auth-input-wrap">
+                    <span className="material-symbols-outlined auth-input-icon">person</span>
+                    <input
+                      className="auth-input"
+                      placeholder="Your full name"
+                      type="text"
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      onFocus={() => setFocused('name')}
+                      onBlur={() => setFocused(null)}
+                      required
+                    />
+                    <div className="auth-input-line" />
                   </div>
-                )}
-              </div>
-
-              {/* Confirm Password */}
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-slate-700 dark:text-white/80 block">Confirm Password</label>
-                <div className="relative">
-                  <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-white/40 text-xl">lock_reset</span>
-                  <input
-                    className="w-full bg-slate-50 dark:bg-background-dark/50 border border-slate-300 dark:border-primary/20 rounded-lg py-3 pl-11 pr-12 text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-white/30 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all"
-                    placeholder="Repeat your password"
-                    type={showConfirm ? "text" : "password"}
-                    value={confirm}
-                    onChange={(e) => setConfirm(e.target.value)}
-                    required
-                  />
-                  <button
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-white/40 hover:text-primary dark:hover:text-white transition-colors"
-                    type="button"
-                    onClick={() => setShowConfirm(!showConfirm)}
-                  >
-                    <span className="material-symbols-outlined text-xl">{showConfirm ? 'visibility_off' : 'visibility'}</span>
-                  </button>
                 </div>
-              </div>
 
-              {/* Terms */}
-              <div className="flex items-start gap-3 py-2">
-                <div className="flex items-center h-5">
+                {/* Email */}
+                <div className={`auth-field ${focused === 'email' ? 'auth-field--focused' : ''} ${email ? 'auth-field--filled' : ''}`}>
+                  <label className="auth-label">Email Address</label>
+                  <div className="auth-input-wrap">
+                    <span className="material-symbols-outlined auth-input-icon">mail</span>
+                    <input
+                      className="auth-input"
+                      placeholder="name@example.com"
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      onFocus={() => setFocused('email')}
+                      onBlur={() => setFocused(null)}
+                      required
+                    />
+                    <div className="auth-input-line" />
+                  </div>
+                </div>
+
+                {/* Password */}
+                <div className={`auth-field ${focused === 'password' ? 'auth-field--focused' : ''} ${password ? 'auth-field--filled' : ''}`}>
+                  <label className="auth-label">Password</label>
+                  <div className="auth-input-wrap">
+                    <span className="material-symbols-outlined auth-input-icon">lock</span>
+                    <input
+                      className="auth-input"
+                      placeholder="Create a strong password"
+                      type={showPassword ? "text" : "password"}
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      onFocus={() => setFocused('password')}
+                      onBlur={() => setFocused(null)}
+                      required
+                    />
+                    <button type="button" className="auth-eye-btn" onClick={() => setShowPassword(!showPassword)}>
+                      <span className="material-symbols-outlined">{showPassword ? 'visibility_off' : 'visibility'}</span>
+                    </button>
+                    <div className="auth-input-line" />
+                  </div>
+                  {/* Password strength indicators */}
+                  {password && (
+                    <div className="auth-rules">
+                      {rules.map((rule, i) => {
+                        const passed = rule.test(password);
+                        return (
+                          <div key={i} className={`auth-rule ${passed ? 'auth-rule--pass' : ''}`}>
+                            <span className="material-symbols-outlined" style={{ fontSize: 12 }}>
+                              {passed ? 'check_circle' : 'radio_button_unchecked'}
+                            </span>
+                            {rule.label}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+
+                {/* Confirm Password */}
+                <div className={`auth-field ${focused === 'confirm' ? 'auth-field--focused' : ''} ${confirm ? 'auth-field--filled' : ''}`}>
+                  <label className="auth-label">Confirm Password</label>
+                  <div className="auth-input-wrap">
+                    <span className="material-symbols-outlined auth-input-icon">lock_reset</span>
+                    <input
+                      className="auth-input"
+                      placeholder="Repeat your password"
+                      type={showConfirm ? "text" : "password"}
+                      value={confirm}
+                      onChange={(e) => setConfirm(e.target.value)}
+                      onFocus={() => setFocused('confirm')}
+                      onBlur={() => setFocused(null)}
+                      required
+                    />
+                    <button type="button" className="auth-eye-btn" onClick={() => setShowConfirm(!showConfirm)}>
+                      <span className="material-symbols-outlined">{showConfirm ? 'visibility_off' : 'visibility'}</span>
+                    </button>
+                    <div className="auth-input-line" />
+                  </div>
+                  {/* Match indicator */}
+                  {confirm && (
+                    <div className={`auth-match ${password === confirm ? 'auth-match--ok' : 'auth-match--err'}`}>
+                      <span className="material-symbols-outlined" style={{ fontSize: 13 }}>
+                        {password === confirm ? 'check_circle' : 'cancel'}
+                      </span>
+                      {password === confirm ? 'Passwords match' : 'Passwords do not match'}
+                    </div>
+                  )}
+                </div>
+
+                {/* Terms */}
+                <label className="auth-terms">
                   <input
-                    id="terms"
                     type="checkbox"
-                    className="w-4 h-4 rounded border-primary/20 bg-background-dark/50 text-primary focus:ring-primary/50 accent-primary"
+                    className="auth-checkbox"
                     checked={agreedToTerms}
                     onChange={(e) => setAgreedToTerms(e.target.checked)}
                   />
-                </div>
-                <label className="text-xs text-slate-500 dark:text-white/60 leading-normal select-none cursor-pointer" htmlFor="terms">
-                  By signing up, you agree to our <a className="text-primary hover:underline" href="#">Terms of Service</a> and <a className="text-primary hover:underline" href="#">Privacy Policy</a>.
+                  <span>
+                    I agree to the{" "}
+                    <a href="#" className="auth-terms-link">Terms of Service</a>
+                    {" "}and{" "}
+                    <a href="#" className="auth-terms-link">Privacy Policy</a>
+                  </span>
                 </label>
+
+                {/* Error */}
+                {error && (
+                  <div className="auth-error">
+                    <span className="material-symbols-outlined" style={{ fontSize: 16 }}>error</span>
+                    {error}
+                  </div>
+                )}
+
+                {/* Submit */}
+                <button type="submit" disabled={loading} className="auth-submit-btn">
+                  {loading ? (
+                    <span className="auth-spinner" />
+                  ) : (
+                    <>
+                      <span>Create Account</span>
+                      <span className="material-symbols-outlined">arrow_forward</span>
+                    </>
+                  )}
+                  <div className="auth-btn-glow" />
+                </button>
+              </form>
+
+              {/* Divider */}
+              <div className="auth-divider">
+                <span className="auth-divider-line" />
+                <span className="auth-divider-text">or sign up with</span>
+                <span className="auth-divider-line" />
               </div>
 
-              {error && <p className="text-red-500 text-sm font-medium">{error}</p>}
-
-              {/* Sign Up Button */}
-              <button
-                type="submit"
-                className="w-full bg-primary hover:bg-primary/90 text-white font-bold py-3.5 rounded-lg shadow-lg shadow-primary/20 transition-all transform active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed"
-                disabled={loading}
-              >
-                {loading ? "Creating Account..." : "Sign Up"}
-              </button>
-            </form>
-
-            {/* Divider */}
-            <div className="relative my-8">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-slate-200 dark:border-primary/10"></div>
+              {/* Social */}
+              <div className="auth-social-row">
+                <button className="auth-social-btn">
+                  <svg width="18" height="18" viewBox="0 0 24 24">
+                    <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
+                    <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" />
+                    <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05" />
+                    <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335" />
+                  </svg>
+                  <span>Google</span>
+                </button>
+                <button className="auth-social-btn">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12" />
+                  </svg>
+                  <span>GitHub</span>
+                </button>
               </div>
-              <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-white dark:bg-background-dark px-2 text-slate-400 dark:text-white/40">Or continue with</span>
-              </div>
-            </div>
 
-            {/* Social Sign Up */}
-            <div className="grid grid-cols-2 gap-4">
-              <button className="flex items-center justify-center gap-2 py-2.5 border border-primary/20 rounded-lg hover:bg-primary/5 transition-colors text-slate-600 dark:text-white">
-                <svg className="w-5 h-5" viewBox="0 0 24 24">
-                  <path d="M5.266 9.765A7.077 7.077 0 0 1 12 4.909c1.69 0 3.218.6 4.418 1.582L19.91 3C17.782 1.145 15.055 0 12 0 7.27 0 3.198 2.698 1.24 6.65l4.026 3.115z" fill="#EA4335"></path>
-                  <path d="M16.04 18.013c-1.09.582-2.38.927-3.79.927a7.07 7.07 0 0 1-6.953-4.842l-4.027 3.115C3.21 21.267 7.311 24 12 24c3.055 0 5.782-1.01 7.91-2.727l-3.87-3.26z" fill="#34A853"></path>
-                  <path d="M23.49 12.273c0-.818-.073-1.609-.21-2.373H12v4.5h6.436c-.273 1.455-1.09 2.682-2.327 3.51l3.873 3.263c2.264-2.09 3.509-5.173 3.509-8.9z" fill="#4285F4"></path>
-                  <path d="M5.266 14.235A7.05 7.05 0 0 1 4.909 12c0-.791.136-1.555.357-2.264L1.24 6.621a11.91 11.91 0 0 0 0 10.758l4.026-3.144z" fill="#FBBC05"></path>
-                </svg>
-                <span className="text-sm font-medium">Google</span>
-              </button>
-              <button className="flex items-center justify-center gap-2 py-2.5 border border-primary/20 rounded-lg hover:bg-primary/5 transition-colors text-slate-600 dark:text-white">
-                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M12 0c-6.627 0-12 5.373-12 12s5.373 12 12 12 12-5.373 12-12-5.373-12-12-12zm3 8h-1.35c-.538 0-.65.221-.65.778v1.222h2l-.209 2h-1.791v7h-3v-7h-2v-2h2v-2.308c0-1.769.931-2.692 3.029-2.692h1.971v3z"></path>
-                </svg>
-                <span className="text-sm font-medium">Facebook</span>
-              </button>
+              <p className="auth-switch">
+                Already have an account?{" "}
+                <button onClick={() => navigate("/login")} className="auth-switch-link">
+                  Sign in
+                </button>
+              </p>
             </div>
           </div>
-
-          {/* Footer Login Link */}
-          <p className="text-center mt-8 text-slate-500 dark:text-white/60 text-sm">
-            Already have an account?
-            <button onClick={() => navigate("/login")} className="ml-1 text-primary font-bold hover:underline transition-all">Log In</button>
-          </p>
         </div>
-      </main>
-
-      {/* Simple Footer */}
-      <footer className="w-full py-6 px-6">
-        <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-slate-400 dark:text-white/40">
-          <p>© 2024 ChatApp Inc. All rights reserved.</p>
-          <div className="flex gap-6">
-            <a className="hover:text-primary transition-colors" href="#">Privacy</a>
-            <a className="hover:text-primary transition-colors" href="#">Terms</a>
-            <a className="hover:text-primary transition-colors" href="#">Help</a>
-          </div>
-        </div>
-      </footer>
+      </div>
     </div>
   );
 };
+
 export default Register;

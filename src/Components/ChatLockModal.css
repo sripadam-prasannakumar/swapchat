@@ -1,0 +1,196 @@
+/* ===== PREMIUM CHAT LOCK MODAL ===== */
+
+.lock-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.4);
+    backdrop-filter: blur(10px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10001;
+    animation: cgFadeIn 0.3s ease;
+}
+
+.lock-modal {
+    background: #ffffff;
+    width: 100%;
+    max-width: 400px;
+    padding: 48px;
+    border-radius: 36px;
+    text-align: center;
+    box-shadow:
+        0 25px 50px -12px rgba(0, 0, 0, 0.2),
+        0 0 32px rgba(99, 102, 241, 0.1);
+    animation: modalScale 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+    position: relative;
+    overflow: hidden;
+}
+
+body.dark .lock-modal {
+    background: #1e293b;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.lock-shake {
+    animation: lockShake 0.4s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+}
+
+@keyframes lockShake {
+
+    10%,
+    90% {
+        transform: translate3d(-1px, 0, 0);
+    }
+
+    20%,
+    80% {
+        transform: translate3d(2px, 0, 0);
+    }
+
+    30%,
+    50%,
+    70% {
+        transform: translate3d(-4px, 0, 0);
+    }
+
+    40%,
+    60% {
+        transform: translate3d(4px, 0, 0);
+    }
+}
+
+@keyframes modalScale {
+    from {
+        opacity: 0;
+        transform: scale(0.9) translateY(20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+}
+
+.lock-icon-wrap {
+    width: 72px;
+    height: 72px;
+    background: var(--primary-gradient);
+    border-radius: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 24px;
+    box-shadow: 0 12px 24px rgba(99, 102, 241, 0.4);
+    animation: float 6s ease-in-out infinite;
+}
+
+.lock-main-icon {
+    font-size: 36px;
+    color: white;
+}
+
+.lock-title {
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: var(--text-primary);
+    margin-bottom: 8px;
+    letter-spacing: -0.02em;
+}
+
+.lock-subtitle {
+    font-size: 0.95rem;
+    color: var(--text-secondary);
+    margin-bottom: 32px;
+    line-height: 1.5;
+}
+
+.lock-pin-row {
+    display: flex;
+    gap: 16px;
+    justify-content: center;
+    margin-bottom: 32px;
+}
+
+.lock-dot {
+    width: 60px;
+    height: 72px;
+    border: 2px solid var(--border-color);
+    border-radius: 20px;
+    text-align: center;
+    font-size: 2rem;
+    font-weight: 800;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    transition: var(--transition-normal);
+    outline: none;
+    font-family: 'Outfit', sans-serif;
+}
+
+.lock-dot:focus {
+    border-color: var(--accent-light);
+    background: #ffffff;
+    box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
+    transform: translateY(-2px);
+}
+
+body.dark .lock-dot:focus {
+    background: #0f172a;
+}
+
+.lock-dot-filled {
+    border-color: var(--accent-light);
+    background: rgba(99, 102, 241, 0.05);
+}
+
+.lock-error {
+    color: #ef4444;
+    font-size: 0.85rem;
+    font-weight: 700;
+    margin-bottom: 24px;
+    padding: 8px 16px;
+    background: #fef2f2;
+    border-radius: 12px;
+    display: inline-block;
+}
+
+body.dark .lock-error {
+    background: rgba(239, 68, 68, 0.1);
+}
+
+.lock-actions {
+    display: flex;
+    gap: 16px;
+}
+
+.lock-btn {
+    flex: 1;
+    height: 56px;
+    border-radius: 18px;
+    font-size: 1rem;
+    font-weight: 800;
+    transition: var(--transition-normal);
+}
+
+.lock-btn-cancel {
+    background: var(--bg-primary);
+    color: var(--text-secondary);
+    border: 1px solid var(--border-color);
+}
+
+.lock-btn-cancel:hover {
+    background: #ffffff;
+    color: var(--text-primary);
+    border-color: var(--text-muted);
+}
+
+.lock-btn-confirm {
+    background: var(--primary-gradient);
+    color: white;
+    box-shadow: 0 10px 20px -5px rgba(99, 102, 241, 0.4);
+}
+
+.lock-btn-confirm:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 15px 30px -5px rgba(99, 102, 241, 0.5);
+}
