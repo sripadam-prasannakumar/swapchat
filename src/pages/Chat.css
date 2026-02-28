@@ -125,7 +125,8 @@ body.dark .chat-area::before {
 
 /* ===== MESSAGE BUBBLE ===== */
 .bubble {
-    max-width: 65%;
+    display: inline-block;
+    max-width: min(480px, 65%);
     padding: 6px 7px 8px 9px;
     border-radius: 7.5px;
     position: relative;
@@ -145,7 +146,7 @@ body.dark .chat-area::before {
 
 .message.me .bubble {
     background: var(--bubble-me);
-    color: var(--text-on-accent);
+    color: #111b21;
     box-shadow: 0 1px 0.5px rgba(11, 20, 26, .13);
     border-top-right-radius: 0px;
 }

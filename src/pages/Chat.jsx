@@ -84,6 +84,18 @@ const Chat = () => {
   const [hasLock, setHasLock] = useState(false);
   const [toast, setToast] = useState(null);
 
+  // 📎 Attachment menu
+  const [showAttachMenu, setShowAttachMenu] = useState(false);
+  const imageInputRef = useRef(null);
+  const fileInputRef = useRef(null);
+
+  // 🎙️ Voice recording
+  const [isRecording, setIsRecording] = useState(false);
+  const [recordSeconds, setRecordSeconds] = useState(0);
+  const mediaRecorderRef = useRef(null);
+  const recordChunksRef = useRef([]);
+  const recordTimerRef = useRef(null);
+
   const bottomRef = useRef(null);
 
   /* 🔐 AUTH */
@@ -260,6 +272,66 @@ const Chat = () => {
     if (!currentUser || !chatId) return;
     localStorage.setItem(`theme_${currentUser.uid}_${chatId}`, themeId);
     setCurrentTheme(themeId);
+  };
+
+  /* 📎 SEND MEDIA MESSAGE (image/video/file/audio) */
+  const sendMediaMessage = async (file, type) => {
+    if (!chatId || !currentUser || !file) return;
+    try {
+      const ext = file.name ? file.name.split('.').pop() : 'webm';
+      const path = `chats/${chatId}/media/${Date.now()}_${file.name || 'audio.webm'}`;
+      const storageRef = sRef(storage, path);
+      await uploadBytes(storageRef, file);
+      const url = await getDownloadURL(storageRef);
+      const msgRef = ref(db, `chats/${chatId}`);
+      await push(msgRef, {
+        type,
+        url,
+        name: file.name || 'Voice message',
+        sender: currentUser.uid,
+        time: Date.now(),
+        seen: false,
+      });
+      // update sidebar last message
+      await update(ref(db, `users/${currentUser.uid}`), { lastMessage: type === 'audio' ? '🎤 Voice message' : `📎 ${file.name || 'Media'}`, lastMessageTime: Date.now() });
+    } catch (err) {
+      console.error('Media upload failed:', err);
+      alert('Upload failed. Please try again.');
+    }
+  };
+
+  /* 🎙️ VOICE RECORDING */
+  const startRecording = async () => {
+    if (text.trim()) return; // only when no text
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mr = new MediaRecorder(stream);
+      recordChunksRef.current = [];
+      mr.ondataavailable = (e) => { if (e.data.size > 0) recordChunksRef.current.push(e.data); };
+      mr.start();
+      mediaRecorderRef.current = mr;
+      setIsRecording(true);
+      setRecordSeconds(0);
+      recordTimerRef.current = setInterval(() => setRecordSeconds(s => s + 1), 1000);
+    } catch (err) {
+      console.error('Mic access denied:', err);
+      alert('Microphone access is required to send voice messages.');
+    }
+  };
+
+  const stopRecording = async () => {
+    if (!mediaRecorderRef.current || !isRecording) return;
+    clearInterval(recordTimerRef.current);
+    setIsRecording(false);
+    setRecordSeconds(0);
+    const mr = mediaRecorderRef.current;
+    mr.onstop = async () => {
+      const blob = new Blob(recordChunksRef.current, { type: 'audio/webm' });
+      blob.name = `voice_${Date.now()}.webm`;
+      await sendMediaMessage(blob, 'audio');
+      mr.stream?.getTracks().forEach(t => t.stop());
+    };
+    mr.stop();
   };
 
   const handleBackgroundUpload = async (e) => {
@@ -587,7 +659,7 @@ const Chat = () => {
                         );
                       }
 
-                      if (msg.type !== 'system' && !msg.text) return null;
+                      if (msg.type !== 'system' && !msg.text && !msg.url) return null;
 
                       return (
                         <React.Fragment key={msg.id}>
@@ -638,6 +710,50 @@ const Chat = () => {
                                     <div className="flex justify-end gap-2">
                                       <button onClick={() => setEditingMsg(null)} className="text-[10px] opacity-70 hover:opacity-100">Cancel</button>
                                       <button onClick={saveEditMessage} className="text-[10px] bg-white text-primary font-bold px-2 py-1 rounded">Save</button>
+                                    </div>
+                                  </div>
+                                ) : msg.type === 'audio' ? (
+                                  <div className="min-w-[220px] pr-10">
+                                    <audio controls src={msg.url} className="w-full h-9 rounded" />
+                                    <div className="absolute bottom-0 right-1 flex items-center gap-1 opacity-70">
+                                      <span className="text-[10px] whitespace-nowrap font-medium text-slate-500 dark:text-slate-400">
+                                        {msg.time && !isNaN(new Date(msg.time).getTime()) ? new Date(msg.time).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }) : ""}
+                                      </span>
+                                      {isMe && <span className={`material-symbols-outlined text-[14px] leading-none ${msg.seen ? "text-blue-500" : "text-slate-500"}`}>{msg.seen ? "done_all" : "done"}</span>}
+                                    </div>
+                                  </div>
+                                ) : msg.type === 'image' ? (
+                                  <div className="min-w-[180px] pr-10">
+                                    <img src={msg.url} alt="sent" className="rounded-lg max-w-full max-h-[300px] object-cover" />
+                                    <div className="absolute bottom-0 right-1 flex items-center gap-1 opacity-70">
+                                      <span className="text-[10px] whitespace-nowrap font-medium text-slate-500 dark:text-slate-400">
+                                        {msg.time && !isNaN(new Date(msg.time).getTime()) ? new Date(msg.time).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }) : ""}
+                                      </span>
+                                      {isMe && <span className={`material-symbols-outlined text-[14px] leading-none ${msg.seen ? "text-blue-500" : "text-slate-500"}`}>{msg.seen ? "done_all" : "done"}</span>}
+                                    </div>
+                                  </div>
+                                ) : msg.type === 'video' ? (
+                                  <div className="min-w-[220px] pr-10">
+                                    <video controls src={msg.url} className="rounded-lg max-w-full max-h-[300px]" />
+                                    <div className="absolute bottom-0 right-1 flex items-center gap-1 opacity-70">
+                                      <span className="text-[10px] whitespace-nowrap font-medium text-slate-500 dark:text-slate-400">
+                                        {msg.time && !isNaN(new Date(msg.time).getTime()) ? new Date(msg.time).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }) : ""}
+                                      </span>
+                                      {isMe && <span className={`material-symbols-outlined text-[14px] leading-none ${msg.seen ? "text-blue-500" : "text-slate-500"}`}>{msg.seen ? "done_all" : "done"}</span>}
+                                    </div>
+                                  </div>
+                                ) : msg.type === 'file' ? (
+                                  <div className="min-w-[180px] pr-10">
+                                    <a href={msg.url} target="_blank" rel="noreferrer" className="flex items-center gap-2 bg-white/20 rounded-lg px-3 py-2 hover:bg-white/30 transition-colors">
+                                      <span className="material-symbols-outlined text-[22px]">description</span>
+                                      <span className="text-sm truncate max-w-[140px]">{msg.name}</span>
+                                      <span className="material-symbols-outlined text-[18px] shrink-0">download</span>
+                                    </a>
+                                    <div className="absolute bottom-0 right-1 flex items-center gap-1 opacity-70">
+                                      <span className="text-[10px] whitespace-nowrap font-medium text-slate-500 dark:text-slate-400">
+                                        {msg.time && !isNaN(new Date(msg.time).getTime()) ? new Date(msg.time).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }) : ""}
+                                      </span>
+                                      {isMe && <span className={`material-symbols-outlined text-[14px] leading-none ${msg.seen ? "text-blue-500" : "text-slate-500"}`}>{msg.seen ? "done_all" : "done"}</span>}
                                     </div>
                                   </div>
                                 ) : (
@@ -711,26 +827,62 @@ const Chat = () => {
                           <span className="material-symbols-outlined text-[26px]">mood</span>
                         </button>
 
-                        <button className="p-2 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 transition-colors">
+                        {/* Hidden file inputs */}
+                        <input ref={imageInputRef} type="file" accept="image/*,video/*" className="hidden" onChange={async (e) => { const f = e.target.files[0]; if (!f) return; const t = f.type.startsWith('video') ? 'video' : 'image'; await sendMediaMessage(f, t); e.target.value = ''; setShowAttachMenu(false); }} />
+                        <input ref={fileInputRef} type="file" className="hidden" onChange={async (e) => { const f = e.target.files[0]; if (!f) return; await sendMediaMessage(f, 'file'); e.target.value = ''; setShowAttachMenu(false); }} />
+
+                        {/* Attachment menu popup */}
+                        {showAttachMenu && (
+                          <div className="absolute bottom-full left-10 mb-3 z-50 bg-white dark:bg-[#233138] rounded-2xl shadow-2xl border border-slate-100 dark:border-white/10 p-2 flex flex-col gap-1 min-w-[160px] animate-in slide-in-from-bottom-3">
+                            <button onClick={() => imageInputRef.current?.click()} className="flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-slate-50 dark:hover:bg-white/10 text-slate-700 dark:text-slate-200 text-sm font-medium transition-colors">
+                              <span className="material-symbols-outlined text-[20px] text-pink-500">image</span> Photo / Video
+                            </button>
+                            <button onClick={() => fileInputRef.current?.click()} className="flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-slate-50 dark:hover:bg-white/10 text-slate-700 dark:text-slate-200 text-sm font-medium transition-colors">
+                              <span className="material-symbols-outlined text-[20px] text-blue-500">description</span> Document
+                            </button>
+                          </div>
+                        )}
+
+                        <button onClick={() => setShowAttachMenu(v => !v)} className="p-2 text-slate-500 hover:text-primary dark:text-slate-400 dark:hover:text-primary-light transition-colors">
                           <span className="material-symbols-outlined text-[26px]">add</span>
                         </button>
+
+                        {/* Recording indicator */}
+                        {isRecording && (
+                          <div className="absolute bottom-full left-0 right-0 mb-2 mx-2 flex items-center gap-2 bg-white dark:bg-[#202c33] rounded-xl px-4 py-2 shadow-lg border border-red-200 dark:border-red-900">
+                            <span className="w-3 h-3 rounded-full bg-red-500 animate-pulse" />
+                            <span className="text-red-500 font-bold text-sm">Recording</span>
+                            <span className="text-slate-500 dark:text-slate-400 text-sm ml-auto font-mono">{Math.floor(recordSeconds / 60).toString().padStart(2, '0')}:{(recordSeconds % 60).toString().padStart(2, '0')}</span>
+                            <span className="text-slate-400 text-xs">Release to send</span>
+                          </div>
+                        )}
 
                         <div className="flex-1 bg-white dark:bg-[#2a3942] rounded-lg px-4 py-1.5 mx-1 shadow-sm border border-slate-200 dark:border-transparent">
                           <input
                             className="w-full bg-transparent border-none focus:ring-0 focus:outline-none outline-none py-1.5 text-[15px] text-slate-900 dark:text-white placeholder:text-slate-500"
-                            placeholder="Type a message"
+                            placeholder={isRecording ? "Recording voice message..." : "Type a message"}
                             value={text}
                             onChange={(e) => { setText(e.target.value); setIsTyping(true); }}
                             onBlur={() => setIsTyping(false)}
                             onKeyDown={(e) => e.key === "Enter" && sendMessage()}
+                            disabled={isRecording}
                           />
                         </div>
 
-                        <button onClick={sendMessage} className={`${text.trim() ? "text-primary dark:text-primary-light" : "text-slate-400"} p-2 transition-all active:scale-90`}>
-                          <span className="material-symbols-outlined text-[30px] fill-current">
-                            {text.trim() ? "send" : "mic"}
-                          </span>
-                        </button>
+                        {text.trim() ? (
+                          <button onClick={sendMessage} className="text-primary dark:text-primary-light p-2 transition-all active:scale-90">
+                            <span className="material-symbols-outlined text-[30px]">send</span>
+                          </button>
+                        ) : (
+                          <button
+                            onPointerDown={startRecording}
+                            onPointerUp={stopRecording}
+                            onPointerLeave={stopRecording}
+                            className={`p-2 transition-all active:scale-90 select-none ${isRecording ? 'text-red-500 scale-110' : 'text-slate-400 hover:text-primary dark:hover:text-primary-light'}`}
+                          >
+                            <span className="material-symbols-outlined text-[30px]">{isRecording ? 'stop_circle' : 'mic'}</span>
+                          </button>
+                        )}
                       </div>
                     )}
                     {/* Reply Preview */}
