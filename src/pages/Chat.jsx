@@ -56,6 +56,7 @@ const Chat = () => {
   // 🔥 typing indicator
   const [isTyping, setIsTyping] = useState(false);
   const [otherTyping, setOtherTyping] = useState(false);
+  const [otherRecording, setOtherRecording] = useState(false);
 
   // 🎨 Themes & Backgrounds
   const [showThemeModal, setShowThemeModal] = useState(false);
@@ -247,6 +248,28 @@ const Chat = () => {
         (uid) => uid !== currentUser.uid
       );
       setOtherTyping(other);
+    });
+  }, [chatId, currentUser]);
+
+  /* 🎙️ RECORDING STATUS (SEND) */
+  useEffect(() => {
+    if (!chatId || !currentUser) return;
+    const recordingRef = ref(db, `recording/${chatId}/${currentUser.uid}`);
+    if (isRecording) {
+      set(recordingRef, true);
+    } else {
+      remove(recordingRef);
+    }
+    return () => remove(recordingRef);
+  }, [isRecording, chatId, currentUser]);
+
+  /* 🎙️ RECORDING STATUS (RECEIVE) */
+  useEffect(() => {
+    if (!chatId || !currentUser) return;
+    return onValue(ref(db, `recording/${chatId}`), (snap) => {
+      const data = snap.val() || {};
+      const other = Object.keys(data).some((uid) => uid !== currentUser.uid);
+      setOtherRecording(other);
     });
   }, [chatId, currentUser]);
 
@@ -566,8 +589,18 @@ const Chat = () => {
                         </div>
                         <div className="min-w-0">
                           <h2 className="font-bold text-sm md:text-base leading-tight text-slate-900 dark:text-white truncate">{selectedUser.name}</h2>
-                          <span className="text-[10px] md:text-xs font-medium text-slate-500 dark:text-slate-400 block truncate">
-                            {otherTyping ? "typing..." : (selectedUser.online ? "Online" : "Offline")}
+                          <span className="text-[10px] md:text-xs font-medium block truncate flex items-center gap-1"
+                            style={{ color: otherRecording ? '#ef4444' : otherTyping ? '#22c55e' : selectedUser.online ? '#22c55e' : '#94a3b8' }}
+                          >
+                            {otherRecording
+                              ? <>
+                                <span className="inline-block w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse mr-1" />
+                                🎤 Recording audio...
+                              </>
+                              : otherTyping
+                                ? <span className="flex items-center gap-1"><span className="inline-flex gap-0.5">{[0, 1, 2].map(i => <span key={i} className="inline-block w-1 h-1 rounded-full bg-green-500" style={{ animation: `bounce 1s infinite ${i * 0.15}s` }} />)}</span> typing...</span>
+                                : selectedUser.online ? 'Online' : 'Offline'
+                            }
                           </span>
                         </div>
                       </div>
