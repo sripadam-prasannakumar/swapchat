@@ -925,12 +925,12 @@ const Chat = () => {
                                     </div>
                                   </div>
                                 ) : (
-                                  <div className="relative pb-3">
-                                    <div className="pr-12">
+                                  <div className="relative pb-1">
+                                    <div className="pr-8">
                                       {msg.text}
                                       {msg.edited && <span className={`text-[10px] ml-2 opacity-60 ${isMe ? "text-slate-600 dark:text-slate-300" : "text-slate-400"}`}>(edited)</span>}
                                     </div>
-                                    <div className="absolute bottom-[-6px] right-0 flex items-center gap-1 opacity-70">
+                                    <div className="absolute bottom-[-2px] right-0 flex items-center gap-1 opacity-70">
                                       <span className="text-[10px] whitespace-nowrap font-medium text-slate-500 dark:text-slate-400">
                                         {msg.time && !isNaN(new Date(msg.time).getTime())
                                           ? new Date(msg.time).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })

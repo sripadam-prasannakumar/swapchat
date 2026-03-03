@@ -148,17 +148,17 @@ body.dark .header-action-btn:hover {
 /* ===== MESSAGES AREA ===== */
 .messages {
     flex: 1;
-    padding: 16px 5%;
+    padding: 16px 20px;
+    /* Static padding is often safer for chat apps than percentages */
     overflow-y: auto;
     display: flex;
     flex-direction: column;
     gap: 4px;
-    /* Increased from 2px for better readability */
     position: relative;
     z-index: 1;
     scroll-behavior: smooth;
-    max-width: 1400px;
-    margin: 0 auto;
+    max-width: 100%;
+    /* Take full width of container */
     width: 100%;
 }
 
@@ -250,16 +250,15 @@ body.dark .date-separator span {
 .bubble {
     position: relative;
     padding: 8px 12px 10px;
-    /* Slightly more spacious */
     border-radius: 12px;
     font-size: 14.5px;
     line-height: 1.5;
     word-wrap: break-word;
     white-space: pre-wrap;
     box-shadow: var(--bubble-shadow);
-    max-width: min(85%, 520px);
-    /* Better max-width constraint */
-    min-width: 60px;
+    max-width: min(85%, 600px);
+    min-width: 80px;
+    /* Increased from 60px */
 }
 
 @media (max-width: 480px) {
