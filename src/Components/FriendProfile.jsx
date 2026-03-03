@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { ref, onValue, update, remove, set, push } from "firebase/database";
 import { db, auth } from "../firebase";
 import ConfirmModal from "./ConfirmModal";
+import FullscreenImageViewer from "./FullscreenImageViewer";
 
 export default function FriendProfile({ user, chatId, onClose, onBlock, onSearchToggle, onLockToggle, hasLock }) {
     const currentUser = auth.currentUser;
@@ -12,6 +13,7 @@ export default function FriendProfile({ user, chatId, onClose, onBlock, onSearch
     const [confirmModal, setConfirmModal] = useState(null);
     const [toast, setToast] = useState(null);
     const [firstMessage, setFirstMessage] = useState(null);
+    const [showFullscreen, setShowFullscreen] = useState(false);
 
     const showToast = (msg, type = "success") => {
         setToast({ msg, type });
@@ -208,7 +210,11 @@ export default function FriendProfile({ user, chatId, onClose, onBlock, onSearch
                     <div className="flex flex-col items-center py-12 px-8 border-b border-slate-50 dark:border-border-dark">
                         <div className="relative mb-6 group">
                             <div className="absolute -inset-1 bg-primary-gradient rounded-full opacity-20 blur-sm group-hover:opacity-40 transition-opacity" />
-                            <div className="w-28 h-28 rounded-full border-4 border-white dark:border-[#1e293b] bg-cover bg-center shadow-premium relative z-10" style={{ backgroundImage: `url(${user.profile_image || "/profile_image.jpg"})` }} />
+                            <div
+                                className="w-28 h-28 rounded-full border-4 border-white dark:border-[#1e293b] bg-cover bg-center shadow-premium relative z-10 cursor-pointer hover:opacity-90 transition-opacity"
+                                style={{ backgroundImage: `url(${user.profile_image || "/profile_image.jpg"})` }}
+                                onClick={() => setShowFullscreen(true)}
+                            />
                             <div className={`absolute bottom-2 right-2 w-6 h-6 rounded-full border-4 border-white dark:border-[#111927] z-20 shadow-sm ${onlineStatus.online ? "bg-green-500" : "bg-slate-300 dark:bg-slate-600"}`} />
                         </div>
                         <div className="text-center space-y-1">
@@ -320,6 +326,14 @@ export default function FriendProfile({ user, chatId, onClose, onBlock, onSearch
                     <p className="text-center text-[11px] font-bold text-slate-400 uppercase tracking-widest">Connected since {firstMessage ? formatDate(firstMessage) : "the beginning"}</p>
                 </div>
             </div>
+
+            {showFullscreen && (
+                <FullscreenImageViewer
+                    src={user.profile_image || "/profile_image.jpg"}
+                    onClose={() => setShowFullscreen(false)}
+                    title={user.name}
+                />
+            )}
         </>
     );
 }

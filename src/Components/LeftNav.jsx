@@ -1,10 +1,12 @@
 import { useContext, useState, useEffect } from "react";
 import { ThemeContext } from "../context/ThemeContext";
+import { useAuth } from "../context/AuthContext";
 import { ref, onValue } from "firebase/database";
 import { db } from "../firebase";
 import logo from "../logo.svg";
 
-const LeftNav = ({ onSelect, activeScreen, currentUser }) => {
+const LeftNav = ({ onSelect, activeScreen }) => {
+    const { currentUser } = useAuth();
     const { dark, setDark } = useContext(ThemeContext);
     const [profileImage, setProfileImage] = useState("/profile_image.jpg");
 
@@ -18,6 +20,7 @@ const LeftNav = ({ onSelect, activeScreen, currentUser }) => {
         });
         return () => unsub();
     }, [currentUser]);
+
 
     const navBtn = (screen, icon, label) => (
         <button
@@ -100,13 +103,17 @@ const LeftNav = ({ onSelect, activeScreen, currentUser }) => {
                     </span>
                 </button>
 
-                <div className="relative cursor-pointer group p-1 rounded-2xl border-2 border-transparent hover:border-primary/30 transition-all" onClick={() => onSelect("profile")}>
-                    <img
-                        src={profileImage}
-                        className="w-10 h-10 rounded-xl object-cover shadow-sm group-hover:scale-105 transition-transform"
-                        alt="profile"
-                    />
-                    <div className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-green-500 border-2 border-white dark:border-background-dark rounded-full shadow-sm"></div>
+                {/* Avatar — click to view profile */}
+                <div className="relative group cursor-pointer" title="View profile" onClick={() => onSelect("profile")}>
+                    <div className="w-10 h-10 rounded-xl overflow-hidden shadow-sm border-2 border-transparent group-hover:border-primary/50 transition-all">
+                        <img
+                            src={profileImage}
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                            alt="profile"
+                        />
+                    </div>
+                    {/* Online dot */}
+                    <div className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-green-500 border-2 border-white dark:border-background-dark rounded-full shadow-sm pointer-events-none"></div>
                 </div>
             </div>
         </div>

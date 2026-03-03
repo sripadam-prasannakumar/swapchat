@@ -19,6 +19,7 @@ import Sidebar from "../Components/Sidebar";
 import LeftNav from "../Components/LeftNav";
 import ThemeModal, { THEMES } from "../Components/ThemeModal";
 import FriendProfile from "../Components/FriendProfile";
+import FullscreenImageViewer from "../Components/FullscreenImageViewer";
 
 import data from "@emoji-mart/data";
 import Picker from "@emoji-mart/react";
@@ -70,6 +71,8 @@ const Chat = () => {
   const [showFriendProfile, setShowFriendProfile] = useState(false);
   const [isBlocked, setIsBlocked] = useState(false);
   const [amIBlocked, setAmIBlocked] = useState(false);
+  const [showFullscreenPhoto, setShowFullscreenPhoto] = useState(false);
+  const [fullscreenPhotoUrl, setFullscreenPhotoUrl] = useState("");
 
   // 🔍 Search in Chat
   const [showSearchPanel, setShowSearchPanel] = useState(false);
@@ -96,6 +99,14 @@ const Chat = () => {
   const mediaRecorderRef = useRef(null);
   const recordChunksRef = useRef([]);
   const recordTimerRef = useRef(null);
+  const isRecordingRef = useRef(false);
+
+  // Refs to avoid stale closures in async callbacks
+  const chatIdRef = useRef(null);
+  const currentUserRef = useRef(null);
+
+  useEffect(() => { chatIdRef.current = chatId; }, [chatId]);
+  useEffect(() => { currentUserRef.current = currentUser; }, [currentUser]);
 
   const bottomRef = useRef(null);
 
@@ -297,42 +308,88 @@ const Chat = () => {
     setCurrentTheme(themeId);
   };
 
-  /* 📎 SEND MEDIA MESSAGE (image/video/file/audio) */
+  /* 📤 SEND MEDIA MESSAGE (images/videos/files — NOT audio) */
   const sendMediaMessage = async (file, type) => {
-    if (!chatId || !currentUser || !file) return;
+    const cid = chatIdRef.current;
+    const user = currentUserRef.current;
+    if (!cid || !user || !file) {
+      console.error('sendMediaMessage: missing chatId, user, or file', { cid, user, file });
+      return;
+    }
     try {
-      const ext = file.name ? file.name.split('.').pop() : 'webm';
-      const path = `chats/${chatId}/media/${Date.now()}_${file.name || 'audio.webm'}`;
+      const fileName = file.name || `media_${Date.now()}`;
+      const path = `chats/${cid}/media/${Date.now()}_${fileName}`;
       const storageRef = sRef(storage, path);
-      await uploadBytes(storageRef, file);
+      await uploadBytes(storageRef, file, { contentType: file.type });
       const url = await getDownloadURL(storageRef);
-      const msgRef = ref(db, `chats/${chatId}`);
+      const msgRef = ref(db, `chats/${cid}`);
       await push(msgRef, {
         type,
         url,
-        name: file.name || 'Voice message',
-        sender: currentUser.uid,
+        name: fileName,
+        sender: user.uid,
         time: Date.now(),
         seen: false,
       });
-      // update sidebar last message
-      await update(ref(db, `users/${currentUser.uid}`), { lastMessage: type === 'audio' ? '🎤 Voice message' : `📎 ${file.name || 'Media'}`, lastMessageTime: Date.now() });
+      const lastMsg = `📎 ${fileName}`;
+      await update(ref(db, `users/${user.uid}`), { lastMessage: lastMsg, lastMessageTime: Date.now() });
     } catch (err) {
       console.error('Media upload failed:', err);
-      alert('Upload failed. Please try again.');
+      alert(`Upload failed: ${err.message || 'Please try again.'}`);
+    }
+  };
+
+  /* 🎤 SEND AUDIO — base64 stored in RTDB, skips Firebase Storage entirely (no CORS issues) */
+  const sendAudioMessage = async (blob) => {
+    const cid = chatIdRef.current;
+    const user = currentUserRef.current;
+    if (!cid || !user || !blob || blob.size === 0) return;
+    try {
+      const dataUrl = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = reject;
+        reader.readAsDataURL(blob);
+      });
+      await push(ref(db, `chats/${cid}`), {
+        type: 'audio',
+        url: dataUrl,
+        name: `voice_${Date.now()}.webm`,
+        sender: user.uid,
+        time: Date.now(),
+        seen: false,
+      });
+      await update(ref(db, `users/${user.uid}`), {
+        lastMessage: '🎤 Voice message',
+        lastMessageTime: Date.now(),
+      });
+      console.log('✅ Voice message sent');
+    } catch (err) {
+      console.error('Audio send failed:', err);
+      alert('Failed to send voice message. Please try again.');
     }
   };
 
   /* 🎙️ VOICE RECORDING */
   const startRecording = async () => {
-    if (text.trim()) return; // only when no text
+    if (text.trim()) return; // only when input has text, show send instead
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const mr = new MediaRecorder(stream);
+      const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
+        ? 'audio/webm;codecs=opus'
+        : MediaRecorder.isTypeSupported('audio/webm')
+          ? 'audio/webm'
+          : '';
+      const mr = new MediaRecorder(stream, mimeType ? { mimeType } : undefined);
       recordChunksRef.current = [];
-      mr.ondataavailable = (e) => { if (e.data.size > 0) recordChunksRef.current.push(e.data); };
-      mr.start();
+      mr.ondataavailable = (e) => {
+        if (e.data && e.data.size > 0) {
+          recordChunksRef.current.push(e.data);
+        }
+      };
+      mr.start(200); // collect chunks every 200ms so we always have data
       mediaRecorderRef.current = mr;
+      isRecordingRef.current = true;
       setIsRecording(true);
       setRecordSeconds(0);
       recordTimerRef.current = setInterval(() => setRecordSeconds(s => s + 1), 1000);
@@ -342,19 +399,58 @@ const Chat = () => {
     }
   };
 
-  const stopRecording = async () => {
-    if (!mediaRecorderRef.current || !isRecording) return;
+  const stopRecording = (shouldSend = true) => {
+    if (!isRecordingRef.current) return;
     clearInterval(recordTimerRef.current);
+    isRecordingRef.current = false;
     setIsRecording(false);
     setRecordSeconds(0);
+
     const mr = mediaRecorderRef.current;
-    mr.onstop = async () => {
-      const blob = new Blob(recordChunksRef.current, { type: 'audio/webm' });
-      blob.name = `voice_${Date.now()}.webm`;
-      await sendMediaMessage(blob, 'audio');
-      mr.stream?.getTracks().forEach(t => t.stop());
-    };
-    mr.stop();
+    if (!mr || mr.state === 'inactive') return;
+
+    // Wrap in Promise so onstop is fully awaited
+    new Promise((resolve) => {
+      mr.onstop = async () => {
+        try {
+          console.log('Recording stopped. Chunks:', recordChunksRef.current.length, 'shouldSend:', shouldSend);
+          if (shouldSend && recordChunksRef.current.length > 0) {
+            const blobType = mr.mimeType || 'audio/webm';
+            const blob = new Blob(recordChunksRef.current, { type: blobType });
+            console.log('Audio blob size:', blob.size, 'type:', blob.type);
+            if (blob.size > 0) {
+              await sendAudioMessage(blob);
+            } else {
+              alert('Recording was empty. Please try again.');
+            }
+          }
+        } catch (err) {
+          console.error('Error in onstop:', err);
+          alert('Failed to send voice message. Please try again.');
+        } finally {
+          mr.stream?.getTracks().forEach(t => t.stop());
+          recordChunksRef.current = [];
+          resolve();
+        }
+      };
+      // requestData flushes any pending chunk before stop fires ondataavailable
+      if (mr.state === 'recording') {
+        mr.requestData();
+      }
+      mr.stop();
+    });
+  };
+
+  const toggleRecording = () => {
+    if (isRecordingRef.current) {
+      stopRecording(true);
+    } else {
+      startRecording();
+    }
+  };
+
+  const cancelRecording = () => {
+    stopRecording(false);
   };
 
   const handleBackgroundUpload = async (e) => {
@@ -539,7 +635,7 @@ const Chat = () => {
     <div className="flex h-screen bg-background-light dark:bg-background-dark font-display overflow-hidden">
 
 
-      {(!isMobile || !selectedUser) && <LeftNav onSelect={setActiveScreen} activeScreen={activeScreen} currentUser={currentUser} />}
+      {(!isMobile || !selectedUser) && <LeftNav onSelect={setActiveScreen} activeScreen={activeScreen} />}
       {activeScreen === "chats" && (!isMobile || !selectedUser) && <Sidebar onSelectUser={setSelectedUser} selectedUser={selectedUser} currentUser={currentUser} />}
 
       {activeScreen === "profile" && <div className="flex-1 overflow-auto"><Settings initialTab="profile" onBack={() => setActiveScreen("chats")} /></div>}
@@ -567,76 +663,92 @@ const Chat = () => {
               {selectedUser ? (
                 <>
                   {/* Chat Header */}
-                  <header className="h-[72px] flex items-center justify-between px-4 md:px-6 border-b border-primary/10 bg-white/80 dark:bg-background-dark/80 backdrop-blur-md z-10 shrink-0">
-                    <div className="flex items-center gap-2 md:gap-4 overflow-hidden">
+                  <header className="chat-header">
+                    <div className="flex items-center gap-3 overflow-hidden min-w-0">
                       {isMobile && (
-                        <button onClick={() => setSelectedUser(null)} className="mr-1 text-slate-500 dark:text-slate-300">
-                          <span className="material-symbols-outlined">arrow_back</span>
+                        <button onClick={() => setSelectedUser(null)} className="header-action-btn mr-1" aria-label="Back">
+                          <span className="material-symbols-outlined text-[22px]">arrow_back</span>
                         </button>
                       )}
                       <div
-                        className="flex items-center gap-3 md:gap-4 cursor-pointer hover:opacity-80 transition-opacity min-w-0"
+                        className="flex items-center gap-3 cursor-pointer min-w-0"
                         onClick={() => setShowFriendProfile(!showFriendProfile)}
                       >
                         <div className="relative shrink-0">
-                          <div
-                            className="w-8 h-8 md:w-10 md:h-10 rounded-full bg-cover bg-center bg-slate-200 dark:bg-[#272546]"
-                            style={{ backgroundImage: `url(${selectedUser.profile_image || "/profile_image.jpg"})` }}
-                          ></div>
+                          <img
+                            className="header-avatar cursor-pointer hover:opacity-90 transition-opacity"
+                            src={selectedUser.profile_image || "/profile_image.jpg"}
+                            alt={selectedUser.name}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setFullscreenPhotoUrl(selectedUser.profile_image || "/profile_image.jpg");
+                              setShowFullscreenPhoto(true);
+                            }}
+                          />
                           {selectedUser.online && (
-                            <div className="absolute bottom-0 right-0 w-2.5 h-2.5 md:w-3 md:h-3 bg-green-500 border-2 border-white dark:border-background-dark rounded-full"></div>
+                            <div className="absolute bottom-0 right-0 w-3 h-3 bg-[#00a884] border-2 border-white dark:border-[#1f2c34] rounded-full" />
                           )}
                         </div>
                         <div className="min-w-0">
-                          <h2 className="font-bold text-sm md:text-base leading-tight text-slate-900 dark:text-white truncate">{selectedUser.name}</h2>
-                          <span className="text-[10px] md:text-xs font-medium block truncate flex items-center gap-1"
-                            style={{ color: otherRecording ? '#ef4444' : otherTyping ? '#22c55e' : selectedUser.online ? '#22c55e' : '#94a3b8' }}
+                          <h2 className="font-semibold text-[15px] leading-tight text-[#111b21] dark:text-[#e9edef] truncate">{selectedUser.name}</h2>
+                          <span className="text-[12.5px] block truncate font-normal"
+                            style={{ color: otherRecording ? '#ef4444' : otherTyping ? '#00a884' : selectedUser.online ? '#00a884' : '#667781' }}
                           >
                             {otherRecording
-                              ? <>
-                                <span className="inline-block w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse mr-1" />
-                                🎤 Recording audio...
-                              </>
+                              ? <><span className="inline-block w-2 h-2 rounded-full bg-red-500 animate-pulse mr-1" />Recording audio...</>
                               : otherTyping
-                                ? <span className="flex items-center gap-1"><span className="inline-flex gap-0.5">{[0, 1, 2].map(i => <span key={i} className="inline-block w-1 h-1 rounded-full bg-green-500" style={{ animation: `bounce 1s infinite ${i * 0.15}s` }} />)}</span> typing...</span>
+                                ? <span className="flex items-center gap-1.5">
+                                  <span className="inline-flex gap-0.5 items-end h-3">
+                                    {[0, 1, 2].map(i => <span key={i} className="inline-block w-1 h-1 rounded-full bg-[#00a884]" style={{ animation: `bounce 1s infinite ${i * 0.15}s` }} />)}
+                                  </span>
+                                  typing...
+                                </span>
                                 : selectedUser.online ? 'Online' : 'Offline'
                             }
                           </span>
                         </div>
                       </div>
                     </div>
-                    <div className="flex items-center gap-1 md:gap-2">
+                    <div className="flex items-center gap-0.5">
                       <button
                         onClick={() => { setShowSearchPanel(!showSearchPanel); setSearchQuery(""); }}
-                        className="p-2 rounded-lg bg-slate-100 dark:bg-[#272546] text-slate-600 dark:text-white hover:bg-primary/20 hover:text-primary transition-all"
+                        className="header-action-btn"
                         title="Search in chat"
+                        aria-label="Search"
                       >
-                        <span className="material-symbols-outlined text-[20px]">search</span>
+                        <span className="material-symbols-outlined text-[22px]">search</span>
                       </button>
                       <button
                         onClick={() => setShowThemeModal(true)}
-                        className="p-2 rounded-lg bg-slate-100 dark:bg-[#272546] text-slate-600 dark:text-white hover:bg-primary/20 hover:text-primary transition-all hidden sm:block"
+                        className="header-action-btn hidden sm:flex"
                         title="Change Theme"
+                        aria-label="Theme"
                       >
-                        <span className="material-symbols-outlined text-[20px]">palette</span>
+                        <span className="material-symbols-outlined text-[22px]">palette</span>
                       </button>
                       <button
                         onClick={() => startCall(selectedUser, 'video')}
-                        className="p-2 rounded-lg bg-slate-100 dark:bg-[#272546] text-slate-600 dark:text-white hover:bg-primary/20 hover:text-primary transition-all"
+                        className="header-action-btn"
+                        title="Video call"
+                        aria-label="Video call"
                       >
-                        <span className="material-symbols-outlined text-[20px]">videocam</span>
+                        <span className="material-symbols-outlined text-[22px]">videocam</span>
                       </button>
                       <button
                         onClick={() => startCall(selectedUser, 'audio')}
-                        className="p-2 rounded-lg bg-slate-100 dark:bg-[#272546] text-slate-600 dark:text-white hover:bg-primary/20 hover:text-primary transition-all"
+                        className="header-action-btn"
+                        title="Voice call"
+                        aria-label="Voice call"
                       >
-                        <span className="material-symbols-outlined text-[20px]">call</span>
+                        <span className="material-symbols-outlined text-[22px]">call</span>
                       </button>
                       <button
                         onClick={() => setShowFriendProfile(!showFriendProfile)}
-                        className={`p-2 rounded-lg bg-slate-100 dark:bg-[#272546] hover:bg-primary/20 hover:text-primary transition-all ${showFriendProfile ? "text-primary bg-primary/10" : "text-slate-600 dark:text-white"}`}
+                        className={`header-action-btn ${showFriendProfile ? 'text-[#6366f1] dark:text-[#818cf8]' : ''}`}
+                        title="More options"
+                        aria-label="More options"
                       >
-                        <span className="material-symbols-outlined text-[20px]">more_vert</span>
+                        <span className="material-symbols-outlined text-[22px]">more_vert</span>
                       </button>
                     </div>
                   </header>
@@ -664,7 +776,7 @@ const Chat = () => {
                   )}
 
                   {/* Message History */}
-                  <div className="flex-1 overflow-y-auto p-6 space-y-2 custom-scrollbar messages">
+                  <div className="messages custom-scrollbar">
                     {messages.map((msg, index) => {
                       const isMe = msg.sender === currentUser.uid;
                       const msgDate = new Date(msg.time);
@@ -684,10 +796,8 @@ const Chat = () => {
 
                       if (msg.type === 'system') {
                         return (
-                          <div key={msg.id} className="flex justify-center my-4">
-                            <span className="px-3 py-1 bg-slate-100 dark:bg-[#272546] rounded-full text-[10px] text-slate-500 font-medium uppercase tracking-wide">
-                              {msg.text}
-                            </span>
+                          <div key={msg.id} className="flex justify-center my-3">
+                            <span className="system-msg">{msg.text}</span>
                           </div>
                         );
                       }
@@ -697,33 +807,29 @@ const Chat = () => {
                       return (
                         <React.Fragment key={msg.id}>
                           {showDateSeparator && (
-                            <div className="flex items-center justify-center py-4">
-                              <div className="h-px flex-1 bg-slate-100 dark:bg-[#272546/50]"></div>
-                              <span className="px-4 text-[10px] font-bold tracking-wider text-slate-400 uppercase">{formatDate(msgDate)}</span>
-                              <div className="h-px flex-1 bg-slate-100 dark:bg-[#272546/50]"></div>
+                            <div className="date-separator">
+                              <span>{formatDate(msgDate)}</span>
                             </div>
                           )}
 
                           <div
-                            className={`flex gap-3 max-w-[80%] group message ${isMe ? "ml-auto flex-row-reverse me" : "other"}`}
+                            className={`flex gap-2 group message ${isMe ? "ml-auto me" : "other"}`}
                             onClick={() => setActiveMsg(activeMsg?.id === msg.id ? null : msg)}
                           >
                             {!isMe && (
-                              <div className="shrink-0 mt-auto mb-1">
-                                <div
-                                  className="w-8 h-8 rounded-full bg-cover bg-center bg-slate-200 dark:bg-[#272546]"
-                                  style={{ backgroundImage: `url(${selectedUser.profile_image || "/profile_image.jpg"})` }}
-                                ></div>
+                              <div className="shrink-0 mt-auto">
+                                <img
+                                  className="w-8 h-8 rounded-full object-cover"
+                                  src={selectedUser.profile_image || "/profile_image.jpg"}
+                                  alt={selectedUser.name}
+                                />
                               </div>
                             )}
 
-                            <div className={`flex flex-col ${isMe ? "items-end" : "items-start"}`}>
-                              <div className={`bubble relative min-w-[90px] px-2.5 pt-1.5 pb-2 shadow-sm text-[14.5px] leading-relaxed break-words ${isMe
-                                ? "bg-[#d9fdd3] dark:bg-[#005c4b] text-[#111b21] dark:text-slate-100"
-                                : "bg-white dark:bg-[#202c33] text-[#111b21] dark:text-slate-100 border border-slate-100 dark:border-white/5"
-                                } ${searchQuery && msg.text?.toLowerCase().includes(searchQuery.toLowerCase()) ? "ring-2 ring-yellow-400" : ""}`}>
+                            <div className={`flex flex-col ${isMe ? 'items-end' : 'items-start'}`}>
+                              <div className={`bubble ${searchQuery && msg.text?.toLowerCase().includes(searchQuery.toLowerCase()) ? 'search-highlight' : ''}`}>
                                 {msg.replyTo && (
-                                  <div className={`text-xs mb-1 border-l-2 pl-2 opacity-80 truncate ${isMe ? "border-white/50" : "border-primary"}`}>
+                                  <div className="reply-preview">
                                     {msg.replyTo.text}
                                   </div>
                                 )}
@@ -746,13 +852,14 @@ const Chat = () => {
                                     </div>
                                   </div>
                                 ) : msg.type === 'audio' ? (
-                                  <div className="min-w-[220px] pr-10">
-                                    <audio controls src={msg.url} className="w-full h-9 rounded" />
-                                    <div className="absolute bottom-0 right-1 flex items-center gap-1 opacity-70">
-                                      <span className="text-[10px] whitespace-nowrap font-medium text-slate-500 dark:text-slate-400">
-                                        {msg.time && !isNaN(new Date(msg.time).getTime()) ? new Date(msg.time).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }) : ""}
+                                  <div className="voice-msg-player">
+                                    <span className="material-symbols-outlined text-[22px] text-[#00a884] shrink-0">mic</span>
+                                    <audio controls src={msg.url} className="flex-1" style={{ height: '34px' }} />
+                                    <div className="flex items-center gap-1 shrink-0 opacity-70 ml-1">
+                                      <span className="text-[11px] whitespace-nowrap" style={{ color: '#667781' }}>
+                                        {msg.time && !isNaN(new Date(msg.time).getTime()) ? new Date(msg.time).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) : ''}
                                       </span>
-                                      {isMe && <span className={`material-symbols-outlined text-[14px] leading-none ${msg.seen ? "text-blue-500" : "text-slate-500"}`}>{msg.seen ? "done_all" : "done"}</span>}
+                                      {isMe && <span className={`material-symbols-outlined text-[14px] leading-none ${msg.seen ? 'text-[#53bdeb]' : 'text-[#667781]'}`}>{msg.seen ? 'done_all' : 'done'}</span>}
                                     </div>
                                   </div>
                                 ) : msg.type === 'image' ? (
@@ -813,23 +920,23 @@ const Chat = () => {
 
                               {/* Reactions */}
                               {msg.reactions && (
-                                <div className="flex -mt-2 bg-white dark:bg-[#131221] rounded-full px-2 py-0.5 shadow-sm border border-slate-100 dark:border-[#272546] z-10 text-sm">
-                                  {Object.values(msg.reactions).join(" ")}
+                                <div className="reaction-badge">
+                                  {Object.values(msg.reactions).join(' ')}
                                 </div>
                               )}
 
                               {/* Actions Menu */}
                               {activeMsg?.id === msg.id && (
-                                <div className={`flex gap-2 mt-2 bg-white dark:bg-[#131221] p-2 rounded-lg shadow-xl border border-slate-100 dark:border-[#272546] animate-in fade-in slide-in-from-top-2 z-20`}>
+                                <div className="msg-actions">
                                   <div className="flex gap-1">
-                                    {["👍", "❤️", "😂", "😮", "😢"].map((e) => (
-                                      <button key={e} onClick={(ev) => { ev.stopPropagation(); toggleReaction(msg, e); }} className="hover:scale-125 transition-transform">{e}</button>
+                                    {['👍', '❤️', '😂', '😮', '😢'].map(e => (
+                                      <button key={e} onClick={ev => { ev.stopPropagation(); toggleReaction(msg, e); }} className="msg-actions-emoji-btn">{e}</button>
                                     ))}
                                   </div>
-                                  <div className="w-px bg-slate-200 dark:bg-[#272546]"></div>
-                                  <button onClick={(ev) => { ev.stopPropagation(); setReplyTo(msg); setActiveMsg(null); }} className="text-xs text-slate-600 dark:text-slate-300 hover:text-primary">Reply</button>
-                                  {canEdit(msg) && <button onClick={(ev) => { ev.stopPropagation(); editMessage(msg); }} className="text-xs text-slate-600 dark:text-slate-300 hover:text-primary">Edit</button>}
-                                  <button onClick={(ev) => { ev.stopPropagation(); deleteMessage(msg); }} className="text-xs text-red-500 hover:text-red-600">Delete</button>
+                                  <div className="msg-actions-divider"></div>
+                                  <button onClick={ev => { ev.stopPropagation(); setReplyTo(msg); setActiveMsg(null); }} className="msg-action-btn">Reply</button>
+                                  {canEdit(msg) && <button onClick={ev => { ev.stopPropagation(); editMessage(msg); }} className="msg-action-btn">Edit</button>}
+                                  <button onClick={ev => { ev.stopPropagation(); deleteMessage(msg); }} className="msg-action-btn danger">Delete</button>
                                 </div>
                               )}
 
@@ -843,96 +950,116 @@ const Chat = () => {
                   </div>
 
                   {/* Input Area */}
-                  <footer className="p-4 border-t border-slate-200 dark:border-[#272546] bg-white dark:bg-background-dark shrink-0">
+                  <footer className="shrink-0 relative">
                     {(isBlocked || amIBlocked) ? (
-                      <div className="text-center p-3 text-sm text-slate-500 bg-slate-100 dark:bg-[#272546] rounded-xl font-medium">
-                        {isBlocked ? "You blocked this contact." : "You cannot send messages to this contact."}
+                      <div className="text-center p-4 text-sm text-[#667781] dark:text-[#8696a0] bg-[#f0f2f5] dark:bg-[#111b21] border-t border-[rgba(0,0,0,0.08)] dark:border-[rgba(255,255,255,0.06)]">
+                        {isBlocked ? 'You blocked this contact.' : 'You cannot send messages to this contact.'}
                       </div>
                     ) : (
-                      <div className="max-w-5xl mx-auto flex items-center gap-2 bg-[#f0f2f5] dark:bg-[#202c33] rounded-xl px-3 py-1.5 relative border border-slate-200 dark:border-white/5">
+                      <div className="chat-input-bar">
+                        {/* Emoji Picker */}
                         {showEmojiPicker && (
-                          <div className="absolute bottom-full left-0 mb-4 z-50 shadow-2xl rounded-2xl overflow-hidden border border-slate-200 dark:border-white/10">
-                            <Picker data={data} onEmojiSelect={(e) => setText((prev) => prev + e.native)} previewPosition="none" theme={dark ? 'dark' : 'light'} />
+                          <div className="absolute bottom-full left-0 mb-2 z-50 shadow-2xl rounded-2xl overflow-hidden border border-[rgba(0,0,0,0.08)] dark:border-[rgba(255,255,255,0.06)]">
+                            <Picker data={data} onEmojiSelect={e => setText(prev => prev + e.native)} previewPosition="none" theme={dark ? 'dark' : 'light'} />
                           </div>
                         )}
 
-                        <button onClick={() => setShowEmojiPicker(!showEmojiPicker)} className="p-2 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 transition-colors">
-                          <span className="material-symbols-outlined text-[26px]">mood</span>
-                        </button>
-
                         {/* Hidden file inputs */}
-                        <input ref={imageInputRef} type="file" accept="image/*,video/*" className="hidden" onChange={async (e) => { const f = e.target.files[0]; if (!f) return; const t = f.type.startsWith('video') ? 'video' : 'image'; await sendMediaMessage(f, t); e.target.value = ''; setShowAttachMenu(false); }} />
-                        <input ref={fileInputRef} type="file" className="hidden" onChange={async (e) => { const f = e.target.files[0]; if (!f) return; await sendMediaMessage(f, 'file'); e.target.value = ''; setShowAttachMenu(false); }} />
+                        <input ref={imageInputRef} type="file" accept="image/*,video/*" className="hidden" onChange={async e => { const f = e.target.files[0]; if (!f) return; const t = f.type.startsWith('video') ? 'video' : 'image'; await sendMediaMessage(f, t); e.target.value = ''; setShowAttachMenu(false); }} />
+                        <input ref={fileInputRef} type="file" className="hidden" onChange={async e => { const f = e.target.files[0]; if (!f) return; await sendMediaMessage(f, 'file'); e.target.value = ''; setShowAttachMenu(false); }} />
+
+                        {/* Recording Bar */}
+                        {isRecording && (
+                          <div className="recording-bar">
+                            <span className="recording-dot" />
+                            <span className="recording-label">Recording</span>
+                            <span className="recording-timer">
+                              {Math.floor(recordSeconds / 60).toString().padStart(2, '0')}:{(recordSeconds % 60).toString().padStart(2, '0')}
+                            </span>
+                            <button onClick={cancelRecording} className="recording-cancel-btn" title="Cancel">
+                              <span className="material-symbols-outlined text-[14px]">close</span>
+                              Cancel
+                            </button>
+                            <button onClick={() => stopRecording(true)} className="recording-send-btn" title="Send">
+                              <span className="material-symbols-outlined text-[14px]">send</span>
+                              Send
+                            </button>
+                          </div>
+                        )}
 
                         {/* Attachment menu popup */}
                         {showAttachMenu && (
-                          <div className="absolute bottom-full left-10 mb-3 z-50 bg-white dark:bg-[#233138] rounded-2xl shadow-2xl border border-slate-100 dark:border-white/10 p-2 flex flex-col gap-1 min-w-[160px] animate-in slide-in-from-bottom-3">
-                            <button onClick={() => imageInputRef.current?.click()} className="flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-slate-50 dark:hover:bg-white/10 text-slate-700 dark:text-slate-200 text-sm font-medium transition-colors">
-                              <span className="material-symbols-outlined text-[20px] text-pink-500">image</span> Photo / Video
+                          <div className="attach-menu absolute bottom-full left-12 mb-2 z-50">
+                            <button onClick={() => imageInputRef.current?.click()} className="attach-menu-item">
+                              <span className="material-symbols-outlined text-[20px] text-pink-500">image</span>
+                              Photo / Video
                             </button>
-                            <button onClick={() => fileInputRef.current?.click()} className="flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-slate-50 dark:hover:bg-white/10 text-slate-700 dark:text-slate-200 text-sm font-medium transition-colors">
-                              <span className="material-symbols-outlined text-[20px] text-blue-500">description</span> Document
+                            <button onClick={() => fileInputRef.current?.click()} className="attach-menu-item">
+                              <span className="material-symbols-outlined text-[20px] text-indigo-500">description</span>
+                              Document
                             </button>
                           </div>
                         )}
 
-                        <button onClick={() => setShowAttachMenu(v => !v)} className="p-2 text-slate-500 hover:text-primary dark:text-slate-400 dark:hover:text-primary-light transition-colors">
-                          <span className="material-symbols-outlined text-[26px]">add</span>
+                        {/* Emoji button */}
+                        <button onClick={() => setShowEmojiPicker(!showEmojiPicker)} className="header-action-btn shrink-0" aria-label="Emoji">
+                          <span className="material-symbols-outlined text-[24px]">mood</span>
                         </button>
 
-                        {/* Recording indicator */}
-                        {isRecording && (
-                          <div className="absolute bottom-full left-0 right-0 mb-2 mx-2 flex items-center gap-2 bg-white dark:bg-[#202c33] rounded-xl px-4 py-2 shadow-lg border border-red-200 dark:border-red-900">
-                            <span className="w-3 h-3 rounded-full bg-red-500 animate-pulse" />
-                            <span className="text-red-500 font-bold text-sm">Recording</span>
-                            <span className="text-slate-500 dark:text-slate-400 text-sm ml-auto font-mono">{Math.floor(recordSeconds / 60).toString().padStart(2, '0')}:{(recordSeconds % 60).toString().padStart(2, '0')}</span>
-                            <span className="text-slate-400 text-xs">Release to send</span>
-                          </div>
-                        )}
+                        {/* Attach button */}
+                        <button onClick={() => setShowAttachMenu(v => !v)} className="header-action-btn shrink-0" aria-label="Attach">
+                          <span className="material-symbols-outlined text-[24px]">attach_file</span>
+                        </button>
 
-                        <div className="flex-1 bg-white dark:bg-[#2a3942] rounded-lg px-4 py-1.5 mx-1 shadow-sm border border-slate-200 dark:border-transparent">
+                        {/* Text Input Pill */}
+                        <div className="chat-input-pill">
                           <input
-                            className="w-full bg-transparent border-none focus:ring-0 focus:outline-none outline-none py-1.5 text-[15px] text-slate-900 dark:text-white placeholder:text-slate-500"
-                            placeholder={isRecording ? "Recording voice message..." : "Type a message"}
+                            className="chat-input-field"
+                            placeholder={isRecording ? 'Recording voice message...' : 'Type a message'}
                             value={text}
-                            onChange={(e) => { setText(e.target.value); setIsTyping(true); }}
+                            onChange={e => { setText(e.target.value); setIsTyping(true); }}
                             onBlur={() => setIsTyping(false)}
-                            onKeyDown={(e) => e.key === "Enter" && sendMessage()}
+                            onKeyDown={e => e.key === 'Enter' && sendMessage()}
                             disabled={isRecording}
                           />
                         </div>
 
+                        {/* Send / Mic Button */}
                         {text.trim() ? (
-                          <button onClick={sendMessage} className="text-primary dark:text-primary-light p-2 transition-all active:scale-90">
-                            <span className="material-symbols-outlined text-[30px]">send</span>
+                          <button onClick={sendMessage} className="chat-send-btn" aria-label="Send">
+                            <span className="material-symbols-outlined text-[24px]">send</span>
                           </button>
                         ) : (
                           <button
-                            onPointerDown={startRecording}
-                            onPointerUp={stopRecording}
-                            onPointerLeave={stopRecording}
-                            className={`p-2 transition-all active:scale-90 select-none ${isRecording ? 'text-red-500 scale-110' : 'text-slate-400 hover:text-primary dark:hover:text-primary-light'}`}
+                            onClick={toggleRecording}
+                            className={`chat-send-btn ${isRecording ? 'recording' : ''}`}
+                            aria-label={isRecording ? 'Stop recording' : 'Record voice message'}
                           >
-                            <span className="material-symbols-outlined text-[30px]">{isRecording ? 'stop_circle' : 'mic'}</span>
+                            <span className="material-symbols-outlined text-[24px]">{isRecording ? 'stop' : 'mic'}</span>
                           </button>
                         )}
                       </div>
                     )}
+
                     {/* Reply Preview */}
-                    {
-                      replyTo && (
-                        <div className="max-w-4xl mx-auto mt-2 text-xs text-slate-500 flex justify-between items-center bg-slate-50 dark:bg-[#272546]/50 p-2 rounded-lg border border-slate-200 dark:border-[#272546]">
-                          <span>Replying to: <b>{replyTo.text.substring(0, 50)}...</b></span>
-                          <button onClick={() => setReplyTo(null)} className="hover:text-red-500"><span className="material-symbols-outlined text-[16px]">close</span></button>
-                        </div>
-                      )
-                    }
-                  </footer >
+                    {replyTo && (
+                      <div className="reply-banner">
+                        <span className="text-[13px] text-[#111b21] dark:text-[#e9edef] truncate">
+                          Replying to: <b>{replyTo.text?.substring(0, 60)}</b>
+                        </span>
+                        <button onClick={() => setReplyTo(null)} className="ml-2 text-[#667781] hover:text-red-500 transition-colors">
+                          <span className="material-symbols-outlined text-[18px]">close</span>
+                        </button>
+                      </div>
+                    )}
+                  </footer>
                 </>
               ) : (
-                <div className="flex-1 flex flex-col items-center justify-center text-slate-400 dark:text-slate-600">
-                  <span className="material-symbols-outlined text-6xl mb-4 bg-slate-100 dark:bg-[#272546] p-6 rounded-full">chat_bubble_outline</span>
-                  <p className="text-lg font-medium">Select a conversation to start messaging</p>
+                <div className="no-chat-placeholder">
+                  <div className="no-chat-icon">
+                    <span className="material-symbols-outlined text-[40px]">chat_bubble_outline</span>
+                  </div>
+                  <p className="text-[15px] font-medium">Select a conversation to start messaging</p>
                 </div>
               )}
 
@@ -945,8 +1072,9 @@ const Chat = () => {
                 onRemoveBackground={handleRemoveBackground}
                 hasCustomBg={!!customBg}
               />
-            </main >
-          )}
+            </main>
+          )
+          }
 
           {/* Friend Profile Sidebar */}
           {
@@ -989,7 +1117,8 @@ const Chat = () => {
             )
           }
         </>
-      )}
+      )
+      }
 
       {/* Toast */}
       {
@@ -1000,6 +1129,14 @@ const Chat = () => {
           </div>
         )
       }
+
+      {showFullscreenPhoto && (
+        <FullscreenImageViewer
+          src={fullscreenPhotoUrl}
+          onClose={() => { setShowFullscreenPhoto(false); setFullscreenPhotoUrl(""); }}
+          title={selectedUser?.name || "Profile photo"}
+        />
+      )}
     </div >
   );
 };

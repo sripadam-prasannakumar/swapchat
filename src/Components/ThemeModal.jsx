@@ -13,12 +13,20 @@ export const THEMES = [
   { id: '3d-sunset', name: '3D Sunset', color: '#be123c', animated: false },
   { id: '3d-neon', name: '3D Neon', color: '#27272a', animated: false },
   { id: 'instagram', name: 'Instagram', color: 'linear-gradient(135deg, #833ab4 0%, #fd1d1d 50%, #fcb045 100%)', animated: false },
-  // ── Animated ──
+  // ── Animated Classics ──
   { id: 'aurora', name: 'Aurora', color: 'linear-gradient(135deg, #0a3d2e, #0e4d6b, #2d0a4e)', animated: true },
   { id: 'galaxy', name: 'Galaxy', color: 'linear-gradient(135deg, #050510, #0b0d2a, #4f46e5)', animated: true },
   { id: 'fire', name: 'Fire', color: 'linear-gradient(135deg, #7c1500, #f97316)', animated: true },
   { id: 'matrix', name: 'Matrix', color: 'linear-gradient(135deg, #000500, #00cc33)', animated: true },
   { id: 'sakura', name: 'Sakura', color: 'linear-gradient(135deg, #fbcfe8, #ec4899)', animated: true },
+  // ── Instagram-Style Animated ──
+  { id: 'insta-animated', name: '📸 Insta', color: 'linear-gradient(135deg, #405de6, #833ab4, #e1306c, #fd1d1d, #fcb045)', animated: true, icon: '🌈' },
+  { id: 'neon-pulse', name: '💜 Neon Pulse', color: 'linear-gradient(135deg, #0a0010, #7c3aed, #ec4899)', animated: true, icon: '💜' },
+  { id: 'ocean-waves', name: '🌊 Ocean Waves', color: 'linear-gradient(135deg, #001233, #0096c7, #48cae4)', animated: true, icon: '🌊' },
+  { id: 'sunset-drift', name: '🌅 Sunset', color: 'linear-gradient(135deg, #0f0500, #d97706, #f59e0b)', animated: true, icon: '🌅' },
+  { id: 'cosmic-dust', name: '🔮 Cosmic', color: 'linear-gradient(135deg, #1e0a4e, #7c3aed, #a78bfa)', animated: true, icon: '🔮' },
+  { id: 'lava-lamp', name: '🔴 Lava', color: 'linear-gradient(135deg, #0d0000, #b91c1c, #dc2626)', animated: true, icon: '🔴' },
+  { id: 'cyber-rain', name: '🟢 Cyber Rain', color: 'linear-gradient(135deg, #001a0a, #00cc6a, #00ff88)', animated: true, icon: '🟢' },
 ];
 
 const ThemeModal = ({ isOpen, onClose, onSelectTheme, currentTheme, onUploadBackground, onRemoveBackground, hasCustomBg }) => {
@@ -70,11 +78,11 @@ const ThemeModal = ({ isOpen, onClose, onSelectTheme, currentTheme, onUploadBack
             </div>
           </div>
 
-          {/* Animated Themes */}
+          {/* Classic Animated Themes */}
           <div className="space-y-4 pt-6 border-t border-slate-100 dark:border-slate-700">
             <h4 className="text-sm font-bold uppercase tracking-widest ml-1" style={{ background: 'linear-gradient(90deg,#a855f7,#ec4899,#f97316)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>✨ Animated Themes</h4>
             <div className="themes-grid custom-scrollbar">
-              {THEMES.filter(t => t.animated).map(theme => (
+              {THEMES.filter(t => t.animated && !t.icon).map(theme => (
                 <div
                   key={theme.id}
                   className={`theme-item group ${activeSelection === theme.id ? 'active' : ''}`}
@@ -86,6 +94,32 @@ const ThemeModal = ({ isOpen, onClose, onSelectTheme, currentTheme, onUploadBack
                   >
                     <span className="absolute inset-0 flex items-center justify-center text-[18px] animate-pulse">✨</span>
                     {activeSelection === theme.id && <span className="material-symbols-outlined text-white text-[16px] relative z-10">check</span>}
+                  </div>
+                  <span>{theme.name}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Instagram-Style Animated Themes */}
+          <div className="space-y-4 pt-6 border-t border-slate-100 dark:border-slate-700">
+            <div className="flex items-center gap-2 ml-1 mb-1">
+              <span className="text-lg">📸</span>
+              <h4 className="text-sm font-bold uppercase tracking-widest" style={{ background: 'linear-gradient(90deg, #405de6, #833ab4, #e1306c, #fd1d1d, #fcb045)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>Instagram Themes</h4>
+            </div>
+            <div className="themes-grid custom-scrollbar">
+              {THEMES.filter(t => t.animated && t.icon).map(theme => (
+                <div
+                  key={theme.id}
+                  className={`theme-item group ${activeSelection === theme.id ? 'active' : ''}`}
+                  onClick={() => setPendingTheme(theme.id)}
+                >
+                  <div
+                    className="theme-preview relative overflow-hidden"
+                    style={{ background: theme.color }}
+                  >
+                    <span className="absolute inset-0 flex items-center justify-center text-[22px]" style={{ animation: 'pulse 2s ease-in-out infinite' }}>{theme.icon}</span>
+                    {activeSelection === theme.id && <span className="material-symbols-outlined text-white text-[16px] relative z-10" style={{ textShadow: '0 1px 4px rgba(0,0,0,0.5)' }}>check</span>}
                   </div>
                   <span>{theme.name}</span>
                 </div>

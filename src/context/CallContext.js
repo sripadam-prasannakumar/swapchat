@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useRef, useState, useCallback } from "react";
-import { ref, onValue, set, push, remove, update, get, runTransaction } from "firebase/database";
+import { ref, onValue, set, push, remove, update, get } from "firebase/database";
 import { db } from "../firebase";
 import { useAuth } from "./AuthContext";
 
@@ -31,17 +31,21 @@ const SERVERS = {
 
 export const CallProvider = ({ children }) => {
     const { currentUser } = useAuth();
-    const [callStatus, setCallStatus] = useState('idle'); // idle, calling, incoming, connected
-    const [callType, setCallType] = useState(null); // video, audio
+    const [callStatus, setCallStatus] = useState('idle');
+    const [callType, setCallType] = useState(null);
     const [localStream, setLocalStream] = useState(null);
     const [remoteStream, setRemoteStream] = useState(null);
     const [isMicOn, setIsMicOn] = useState(true);
     const [isCamOn, setIsCamOn] = useState(true);
     const [isScreenSharing, setIsScreenSharing] = useState(false);
     const [callDuration, setCallDuration] = useState(0);
-    const [selectedUser, setSelectedUser] = useState(null); // The other party
+    const [selectedUser, setSelectedUser] = useState(null);
 
+    // --- Refs that shadow state so callbacks always see current values ---
     const callStatusRef = useRef('idle');
+    const callTypeRef = useRef(null);
+    const selectedUserRef = useRef(null);
+
     const peerConnectionRef = useRef(null);
     const localVideoRef = useRef(null);
     const remoteVideoRef = useRef(null);
@@ -51,7 +55,14 @@ export const CallProvider = ({ children }) => {
     const callTimerRef = useRef(null);
     const activeChatIdRef = useRef(null);
 
+    // Refs for per-session Firebase listeners (so we never miss answer/candidates)
+    const unsubCallListenerRef = useRef(null);
+    const unsubCandidatesListenerRef = useRef(null);
+    const missedCallTimerRef = useRef(null);
+
     useEffect(() => { callStatusRef.current = callStatus; }, [callStatus]);
+    useEffect(() => { callTypeRef.current = callType; }, [callType]);
+    useEffect(() => { selectedUserRef.current = selectedUser; }, [selectedUser]);
 
     // ===== STREAM ATTACHMENT =====
     useEffect(() => {
@@ -80,12 +91,12 @@ export const CallProvider = ({ children }) => {
         return () => clearInterval(callTimerRef.current);
     }, [callStatus]);
 
-    // ===== GLOBAL CALL LISTENER =====
+    // ===== GLOBAL CALL LISTENER (fires when someone calls this user) =====
     useEffect(() => {
         if (!currentUser) return;
 
         const myCallRef = ref(db, `calls/${currentUser.uid}`);
-        const unsubGlobal = onValue(myCallRef, async (snap) => {
+        const unsub = onValue(myCallRef, async (snap) => {
             const data = snap.val();
             if (!data || callStatusRef.current !== 'idle') return;
 
@@ -93,7 +104,6 @@ export const CallProvider = ({ children }) => {
             activeChatIdRef.current = data.chatId;
             setCallType(data.callType);
 
-            // Fetch caller info
             const callerSnap = await get(ref(db, `users/${data.caller}`));
             if (callerSnap.exists()) {
                 setSelectedUser({ uid: data.caller, ...callerSnap.val() });
@@ -102,79 +112,119 @@ export const CallProvider = ({ children }) => {
             setCallStatus('incoming');
         });
 
-        return () => unsubGlobal();
+        return () => unsub();
     }, [currentUser]);
 
-    // ===== CHAT-SPECIFIC LISTENERS (Offer/Answer/Candidates) =====
-    useEffect(() => {
-        if (!currentUser || !activeChatIdRef.current) return;
-        const chatId = activeChatIdRef.current;
+    // ===== HELPER: detach chat-level listeners =====
+    const detachChatListeners = useCallback(() => {
+        if (unsubCallListenerRef.current) {
+            unsubCallListenerRef.current();
+            unsubCallListenerRef.current = null;
+        }
+        if (unsubCandidatesListenerRef.current) {
+            unsubCandidatesListenerRef.current();
+            unsubCandidatesListenerRef.current = null;
+        }
+    }, []);
 
-        const callRef = ref(db, `chats/${chatId}/call`);
-        const candidatesRef = ref(db, `chats/${chatId}/candidates`);
+    // ===== HELPER: attach chat-level listeners for ONE call session =====
+    //
+    // KEY FIX: We call this function imperatively (not inside a useEffect that
+    // depends on callStatus). That way the listeners are NOT torn down and
+    // rebuilt whenever callStatus changes from 'calling' → 'connected'.
+    //
+    const attachChatListeners = useCallback((chatId) => {
+        detachChatListeners();
 
-        const unsubCall = onValue(callRef, async (snap) => {
+        // --- call node listener (answer SDP arrives here) ---
+        const callNodeRef = ref(db, `chats/${chatId}/call`);
+        const unsubCall = onValue(callNodeRef, async (snap) => {
             const data = snap.val();
+
             if (!data) {
-                if (isSettingUpCallRef.current) return;
-                if (callStatusRef.current !== 'idle') endCall(false);
+                // The call node was removed → other party ended/declined
+                if (!isSettingUpCallRef.current && callStatusRef.current !== 'idle') {
+                    endCall(false);
+                }
                 return;
             }
 
-            if (data.type === 'offer' && data.caller !== currentUser.uid && callStatusRef.current === 'idle') {
-                incomingCallDataRef.current = data;
-                activeChatIdRef.current = data.chatId || chatId;
-                setCallType(data.callType);
-                setCallStatus('incoming');
-            }
-
-            if (data.type === 'answer' && callStatusRef.current === 'calling') {
-                if (peerConnectionRef.current) {
-                    await peerConnectionRef.current.setRemoteDescription(new RTCSessionDescription(data.sdp));
-                    setCallStatus('connected');
-                    processCandidateQueue();
+            // Caller side: receive answer
+            if (
+                data.type === 'answer' &&
+                data.answerer !== currentUser?.uid &&
+                callStatusRef.current === 'calling'
+            ) {
+                const pc = peerConnectionRef.current;
+                if (pc && data.sdp) {
+                    try {
+                        await pc.setRemoteDescription(new RTCSessionDescription(data.sdp));
+                        // Cancel the missed-call timeout
+                        if (missedCallTimerRef.current) {
+                            clearTimeout(missedCallTimerRef.current);
+                            missedCallTimerRef.current = null;
+                        }
+                        setCallStatus('connected');
+                        processCandidateQueue();
+                    } catch (e) {
+                        console.error("Error setting remote description (answer):", e);
+                    }
                 }
             }
         });
 
-        const unsubCandidates = onValue(candidatesRef, (snap) => {
+        // --- ICE candidates listener ---
+        const candidatesNodeRef = ref(db, `chats/${chatId}/candidates`);
+        const unsubCandidates = onValue(candidatesNodeRef, (snap) => {
             const data = snap.val();
             if (!data) return;
 
             Object.values(data).forEach(async (candidateData) => {
-                if (candidateData.sender !== currentUser.uid) {
-                    const pc = peerConnectionRef.current;
-                    if (candidateData.candidate && (candidateData.sdpMid !== undefined || candidateData.sdpMLineIndex !== undefined)) {
-                        const iceCandidate = new RTCIceCandidate({
-                            candidate: candidateData.candidate,
-                            sdpMid: candidateData.sdpMid,
-                            sdpMLineIndex: candidateData.sdpMLineIndex
-                        });
+                if (candidateData.sender === currentUser?.uid) return;
 
-                        if (pc && pc.remoteDescription) {
-                            try { await pc.addIceCandidate(iceCandidate); } catch (e) { console.error("Error adding ice candidate", e); }
-                        } else {
-                            candidateQueueRef.current.push(iceCandidate);
+                const pc = peerConnectionRef.current;
+                if (
+                    candidateData.candidate &&
+                    (candidateData.sdpMid !== undefined || candidateData.sdpMLineIndex !== undefined)
+                ) {
+                    const iceCandidate = new RTCIceCandidate({
+                        candidate: candidateData.candidate,
+                        sdpMid: candidateData.sdpMid,
+                        sdpMLineIndex: candidateData.sdpMLineIndex,
+                    });
+
+                    if (pc && pc.remoteDescription) {
+                        try {
+                            await pc.addIceCandidate(iceCandidate);
+                        } catch (e) {
+                            console.error("Error adding ICE candidate:", e);
                         }
+                    } else {
+                        candidateQueueRef.current.push(iceCandidate);
                     }
                 }
             });
         });
 
-        return () => {
-            unsubCall();
-            unsubCandidates();
-        };
-    }, [currentUser, callStatus]); // Recalculate when status changes to ensure listeners stay relevant
+        unsubCallListenerRef.current = unsubCall;
+        unsubCandidatesListenerRef.current = unsubCandidates;
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [currentUser, detachChatListeners]);
 
+    // ===== PROCESS QUEUED CANDIDATES =====
     const processCandidateQueue = async () => {
         if (!peerConnectionRef.current || !candidateQueueRef.current.length) return;
         for (const candidate of candidateQueueRef.current) {
-            try { await peerConnectionRef.current.addIceCandidate(candidate); } catch (e) { console.error("Error processing candidate", e); }
+            try {
+                await peerConnectionRef.current.addIceCandidate(candidate);
+            } catch (e) {
+                console.error("Error processing queued candidate:", e);
+            }
         }
         candidateQueueRef.current = [];
     };
 
+    // ===== SETUP PEER CONNECTION CALLBACKS =====
     const setupPeerConnection = useCallback((pc, targetChatId) => {
         pc.ontrack = (event) => {
             setRemoteStream((prev) => {
@@ -190,12 +240,27 @@ export const CallProvider = ({ children }) => {
             if (event.candidate) {
                 const { candidate, sdpMid, sdpMLineIndex } = event.candidate;
                 push(ref(db, `chats/${targetChatId}/candidates`), {
-                    candidate, sdpMid, sdpMLineIndex, sender: currentUser.uid
+                    candidate,
+                    sdpMid,
+                    sdpMLineIndex,
+                    sender: currentUser.uid,
                 });
             }
         };
+
+        pc.onconnectionstatechange = () => {
+            console.log("PeerConnection state:", pc.connectionState);
+            if (
+                (pc.connectionState === 'failed' || pc.connectionState === 'disconnected') &&
+                callStatusRef.current === 'connected'
+            ) {
+                endCall(true);
+            }
+        };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [currentUser]);
 
+    // ===== START CALL =====
     const startCall = async (targetUser, type) => {
         if (!currentUser || !targetUser) return;
         const chatId = [currentUser.uid, targetUser.uid].sort().join("_");
@@ -213,8 +278,10 @@ export const CallProvider = ({ children }) => {
 
         try {
             const stream = await navigator.mediaDevices.getUserMedia({
-                video: type === 'video' ? { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: 'user' } : false,
-                audio: true
+                video: type === 'video'
+                    ? { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: 'user' }
+                    : false,
+                audio: true,
             });
 
             setLocalStream(stream);
@@ -232,13 +299,26 @@ export const CallProvider = ({ children }) => {
                 caller: currentUser.uid,
                 callType: type,
                 chatId,
-                timestamp: Date.now()
+                timestamp: Date.now(),
             };
 
             await set(ref(db, `chats/${chatId}/call`), offerPayload);
             await set(ref(db, `calls/${targetUser.uid}`), offerPayload);
 
             isSettingUpCallRef.current = false;
+
+            // Attach listeners AFTER writing offer (so the first snapshot doesn't
+            // incorrectly trigger the "call ended" branch)
+            attachChatListeners(chatId);
+
+            // 30-second missed-call timeout
+            missedCallTimerRef.current = setTimeout(() => {
+                if (callStatusRef.current === 'calling') {
+                    console.log("No answer — ending call as missed");
+                    endCall(true);
+                }
+            }, 30000);
+
         } catch (err) {
             console.error("Error starting call:", err);
             isSettingUpCallRef.current = false;
@@ -246,10 +326,12 @@ export const CallProvider = ({ children }) => {
         }
     };
 
+    // ===== ANSWER CALL =====
     const answerCall = async () => {
         const activeChatId = activeChatIdRef.current;
         if (!activeChatId || !currentUser) return;
 
+        // Remove the incoming notification for this user
         await remove(ref(db, `calls/${currentUser.uid}`));
 
         const pc = new RTCPeerConnection(SERVERS);
@@ -258,18 +340,21 @@ export const CallProvider = ({ children }) => {
 
         try {
             const stream = await navigator.mediaDevices.getUserMedia({
-                video: callType === 'video' ? { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: 'user' } : false,
-                audio: true
+                video: callTypeRef.current === 'video'
+                    ? { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: 'user' }
+                    : false,
+                audio: true,
             });
 
             setLocalStream(stream);
-            setIsCamOn(callType === 'video');
+            setIsCamOn(callTypeRef.current === 'video');
             stream.getTracks().forEach(track => pc.addTrack(track, stream));
             if (localVideoRef.current) localVideoRef.current.srcObject = stream;
 
             const offer = incomingCallDataRef.current;
             await pc.setRemoteDescription(new RTCSessionDescription(offer.sdp));
 
+            // Process any candidates that arrived before we set remote description
             processCandidateQueue();
 
             const answer = await pc.createAnswer();
@@ -278,38 +363,54 @@ export const CallProvider = ({ children }) => {
             await update(ref(db, `chats/${activeChatId}/call`), {
                 type: 'answer',
                 sdp: JSON.parse(JSON.stringify(answer)),
-                answerer: currentUser.uid
+                answerer: currentUser.uid,
             });
 
             setCallStatus('connected');
+
+            // Attach candidate listener so answerer also receives caller's ICE candidates
+            attachChatListeners(activeChatId);
+
         } catch (err) {
             console.error("Error answering call:", err);
             endCall();
         }
     };
 
+    // ===== END CALL =====
     const endCall = async (clearDb = true) => {
         const activeChatId = activeChatIdRef.current;
 
-        // Missed call logic
+        // Stop the missed-call timer first
+        if (missedCallTimerRef.current) {
+            clearTimeout(missedCallTimerRef.current);
+            missedCallTimerRef.current = null;
+        }
+
+        // Detach Firebase listeners immediately to prevent re-entrant calls
+        detachChatListeners();
+
+        // Write missed-call message only when the CALLER ends while still ringing
         if (callStatusRef.current === 'calling' && activeChatId && currentUser) {
-            push(ref(db, `chats/${activeChatId}`), {
+            push(ref(db, `chats/${activeChatId}/messages`), {
                 text: "Missed Call",
                 sender: currentUser.uid,
                 type: 'missed_call',
-                callType: callType,
+                callType: callTypeRef.current,
                 time: Date.now(),
-                seen: false
+                seen: false,
             });
             const lastMsgData = { lastMessage: "Missed Call", lastMessageTime: Date.now() };
             update(ref(db, "users/" + currentUser.uid), lastMsgData);
-            if (selectedUser) update(ref(db, "users/" + selectedUser.uid), lastMsgData);
+            if (selectedUserRef.current) {
+                update(ref(db, "users/" + selectedUserRef.current.uid), lastMsgData);
+            }
         }
 
         if (clearDb && activeChatId && currentUser) {
             remove(ref(db, `chats/${activeChatId}/call`));
             remove(ref(db, `chats/${activeChatId}/candidates`));
-            if (selectedUser) remove(ref(db, `calls/${selectedUser.uid}`));
+            if (selectedUserRef.current) remove(ref(db, `calls/${selectedUserRef.current.uid}`));
             remove(ref(db, `calls/${currentUser.uid}`));
         }
 
@@ -328,7 +429,9 @@ export const CallProvider = ({ children }) => {
         setCallType(null);
         setIsScreenSharing(false);
         activeChatIdRef.current = null;
-        // Don't reset selectedUser immediately so overlay can fade out if needed
+        incomingCallDataRef.current = null;
+        candidateQueueRef.current = [];
+        isSettingUpCallRef.current = false;
     };
 
     const toggleMic = () => {
@@ -342,7 +445,7 @@ export const CallProvider = ({ children }) => {
     };
 
     const toggleCamera = () => {
-        if (localStream && callType === 'video') {
+        if (localStream && callTypeRef.current === 'video') {
             const track = localStream.getVideoTracks()[0];
             if (track) {
                 track.enabled = !track.enabled;
@@ -356,14 +459,14 @@ export const CallProvider = ({ children }) => {
             const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
             const videoTrack = stream.getVideoTracks()[0];
             const sender = peerConnectionRef.current.getSenders().find(s => s.track.kind === 'video');
-            sender.replaceTrack(videoTrack);
+            if (sender) sender.replaceTrack(videoTrack);
             setLocalStream(stream);
             setIsScreenSharing(false);
         } else {
             const stream = await navigator.mediaDevices.getDisplayMedia({ video: true });
             const videoTrack = stream.getVideoTracks()[0];
             const sender = peerConnectionRef.current.getSenders().find(s => s.track.kind === 'video');
-            sender.replaceTrack(videoTrack);
+            if (sender) sender.replaceTrack(videoTrack);
             setLocalStream(stream);
             setIsScreenSharing(true);
         }
@@ -381,7 +484,8 @@ export const CallProvider = ({ children }) => {
             isMicOn, isCamOn, isScreenSharing, callDuration,
             selectedUser, localVideoRef, remoteVideoRef,
             startCall, answerCall, endCall, toggleMic, toggleCamera,
-            shareScreen, formatCallDuration, setActiveChatId: (id) => { activeChatIdRef.current = id; }
+            shareScreen, formatCallDuration,
+            setActiveChatId: (id) => { activeChatIdRef.current = id; },
         }}>
             {children}
         </CallContext.Provider>

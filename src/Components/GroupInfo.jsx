@@ -1,15 +1,18 @@
 import React, { useState } from "react";
 import { ref, remove, update } from "firebase/database";
 import { db, auth } from "../firebase";
+import { useAuth } from "../context/AuthContext";
+import FullscreenImageViewer from "./FullscreenImageViewer";
 
 export default function GroupInfo({ group, onClose, onGroupLeft, hasLock, onLockToggle }) {
+    const { currentUser } = useAuth();
     const [renaming, setRenaming] = useState(false);
     const [newName, setNewName] = useState(group?.name || "");
     const [saving, setSaving] = useState(false);
+    const [fullscreenData, setFullscreenData] = useState(null); // { src, title }
 
     if (!group) return null;
 
-    const currentUser = auth.currentUser;
     const isAdmin = group.createdBy === currentUser?.uid;
     const members = group.memberDetails || [];
 
@@ -90,7 +93,11 @@ export default function GroupInfo({ group, onClose, onGroupLeft, hasLock, onLock
 
                 {/* Current user */}
                 <div className="flex items-center gap-3 px-3 py-2 rounded-lg">
-                    <div className="w-10 h-10 rounded-full bg-cover bg-center bg-slate-200" style={{ backgroundImage: `url(${currentUser?.photoURL || "/profile_image.jpg"})` }} />
+                    <div
+                        className="w-10 h-10 rounded-full bg-cover bg-center bg-slate-200 cursor-pointer hover:opacity-80 transition-opacity"
+                        style={{ backgroundImage: `url(${currentUser?.photoURL || "/profile_image.jpg"})` }}
+                        onClick={() => setFullscreenData({ src: currentUser?.photoURL || "/profile_image.jpg", title: "You" })}
+                    />
                     <div className="flex-1">
                         <p className="font-semibold text-sm text-slate-800 dark:text-white">{currentUser?.displayName || "You"}</p>
                         <p className="text-xs text-slate-400">You · {isAdmin ? "Admin" : "Member"}</p>
@@ -101,7 +108,11 @@ export default function GroupInfo({ group, onClose, onGroupLeft, hasLock, onLock
                 {members.map(m => (
                     <div key={m.uid} className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-50 dark:hover:bg-primary/5 transition-colors">
                         <div className="relative">
-                            <div className="w-10 h-10 rounded-full bg-cover bg-center bg-slate-200" style={{ backgroundImage: `url(${m.profile_image || "/profile_image.jpg"})` }} />
+                            <div
+                                className="w-10 h-10 rounded-full bg-cover bg-center bg-slate-200 cursor-pointer hover:opacity-80 transition-opacity"
+                                style={{ backgroundImage: `url(${m.profile_image || "/profile_image.jpg"})` }}
+                                onClick={() => setFullscreenData({ src: m.profile_image || "/profile_image.jpg", title: m.name })}
+                            />
                             {m.online && <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-white dark:border-[#111927] rounded-full" />}
                         </div>
                         <div className="flex-1">
@@ -139,6 +150,13 @@ export default function GroupInfo({ group, onClose, onGroupLeft, hasLock, onLock
                     <span className="material-symbols-outlined text-slate-300 ml-auto">chevron_right</span>
                 </button>
             </div>
+            {fullscreenData && (
+                <FullscreenImageViewer
+                    src={fullscreenData.src}
+                    onClose={() => setFullscreenData(null)}
+                    title={fullscreenData.title}
+                />
+            )}
         </div>
     );
 }

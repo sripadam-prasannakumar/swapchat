@@ -1,11 +1,14 @@
 import { signOut, updatePassword, reauthenticateWithCredential, EmailAuthProvider, updateProfile } from "firebase/auth";
-import { useContext, useState, useEffect } from "react";
+import { useContext, useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { get, ref, update, onValue } from "firebase/database";
 import { uploadBytes, getDownloadURL, ref as sRef } from "firebase/storage";
+import Cropper from "react-easy-crop";
+import getCroppedImg from "../utils/cropImage";
 import { SettingsContext } from "../context/SettingsContext";
 import { ThemeContext } from "../context/ThemeContext";
 import { auth, db, storage } from "../firebase";
+import FullscreenImageViewer from "../Components/FullscreenImageViewer";
 
 // Simple toast notification
 function Toast({ msg, type = "success", onDone }) {
@@ -35,8 +38,23 @@ export default function Settings({ initialTab = "profile", onBack }) {
 
     // Profile image
     const [savedProfileImage, setSavedProfileImage] = useState(user?.photoURL || "/profile_image.jpg");
-    const [profilePreview, setProfilePreview] = useState(null);
     const [uploadingPhoto, setUploadingPhoto] = useState(false);
+
+    // Cropping State
+    const [imageToCrop, setImageToCrop] = useState(null);
+    const [crop, setCrop] = useState({ x: 0, y: 0 });
+    const [zoom, setZoom] = useState(1);
+    const [croppedAreaPixels, setCroppedAreaPixels] = useState(null);
+    const [showCropModal, setShowCropModal] = useState(false);
+
+    // Profile Menu & Viewer State
+    const [showPhotoMenu, setShowPhotoMenu] = useState(false);
+    const [showFullscreenPhoto, setShowFullscreenPhoto] = useState(false);
+
+    // Live Camera State
+    const [showCamera, setShowCamera] = useState(false);
+    const [cameraStream, setCameraStream] = useState(null);
+    const videoRef = useRef(null);
 
     // Change Password
     const [currentPassword, setCurrentPassword] = useState("");
@@ -59,53 +77,172 @@ export default function Settings({ initialTab = "profile", onBack }) {
         return () => unsub();
     }, [user]);
 
-    const handleCreateProfileImage = async (e) => {
+    const onCropComplete = useCallback((_area, areaPixels) => {
+        setCroppedAreaPixels(areaPixels);
+    }, []);
+
+    const handleCreateProfileImage = (e) => {
         const file = e.target.files[0];
         if (!file || !user) return;
-        const localUrl = URL.createObjectURL(file);
-        setProfilePreview(localUrl);
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = () => {
+            setImageToCrop(reader.result);
+            setShowCropModal(true);
+        };
+        e.target.value = ""; // Reset input
+    };
+
+    const handleCropSave = async () => {
+        if (!imageToCrop || !user) {
+            console.error("Upload aborted: No image content or no authorized user.");
+            setShowCropModal(false);
+            return;
+        }
+
+        console.log("Starting profile photo upload process...");
+        setUploadingPhoto(true);
+        setShowCropModal(false);
+
+        // Emergency timeout - 45s hard reset
+        const timeoutId = setTimeout(() => {
+            console.error("CRITICAL ERROR: Profile upload process exceeded 45s timeout.");
+            setUploadingPhoto(false);
+            showToast("Upload timed out. Check your internet connection.", "error");
+        }, 45000);
+
+        try {
+            console.log("Analyzing crop metadata...", croppedAreaPixels);
+            const finalCrop = croppedAreaPixels || { x: 0, y: 0, width: 400, height: 400 };
+
+            const croppedBlob = await getCroppedImg(imageToCrop, finalCrop);
+            if (!croppedBlob) throw new Error("Image processing failed: no data returned.");
+
+            console.log("Cropped image ready. Size:", (croppedBlob.size / 1024).toFixed(2), "KB");
+
+            const filename = `profile_images/${user.uid}_${Date.now()}.jpg`;
+            const storageRef = sRef(storage, filename);
+
+            // Use a specific timeout for the storage upload to catch CORS issues quickly
+            const uploadToStorage = async () => {
+                console.log("Uploading bytes to Firebase Storage...");
+                await uploadBytes(storageRef, croppedBlob);
+                return await getDownloadURL(storageRef);
+            };
+
+            const storageTimeout = new Promise((_, reject) =>
+                setTimeout(() => reject(new Error("STORAGE_TIMEOUT")), 8000)
+            );
+
+            let url;
+            try {
+                // Race the upload against a 8s timeout to detect CORS blocks quickly
+                url = await Promise.race([uploadToStorage(), storageTimeout]);
+                console.log("Upload successful. Syncing profile...");
+                await updateProfile(user, { photoURL: url });
+                await update(ref(db, `users/${user.uid}`), { profile_image: url });
+                setSavedProfileImage(url);
+                showToast("Profile photo updated!");
+            } catch (storageErr) {
+                console.warn("Storage upload failed (likely CORS or Timeout). Falling back to Base64...", storageErr);
+
+                const base64Url = await new Promise((resolve) => {
+                    const reader = new FileReader();
+                    reader.onload = () => resolve(reader.result);
+                    reader.readAsDataURL(croppedBlob);
+                });
+
+                // CRITICAL: Bypass updateProfile for Base64 strings (Firebase Auth has a length limit)
+                await update(ref(db, `users/${user.uid}`), { profile_image: base64Url });
+                setSavedProfileImage(base64Url);
+                showToast("Profile updated (Secondary Storage)");
+
+                if (storageErr.message === "STORAGE_TIMEOUT" || storageErr.name === "FirebaseError") {
+                    console.info("TIP: If you see CORS errors in console, please apply the firebase_cors.json fix.");
+                }
+            }
+        } catch (e) {
+            console.error("Profile upload encountered a fatal error:", e);
+            showToast(`Upload failed: ${e.message}`, "error");
+        } finally {
+            clearTimeout(timeoutId);
+            setUploadingPhoto(false);
+            setImageToCrop(null);
+            console.log("Profile upload flow finalized. UI state reset.");
+        }
+    };
+
+    // --- Camera Logic ---
+    const handleStartCamera = async () => {
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({
+                video: { width: 1280, height: 720, facingMode: "user" }
+            });
+            setCameraStream(stream);
+            setShowCamera(true);
+            setShowPhotoMenu(false); // Close menu
+        } catch (err) {
+            console.error("Error accessing camera:", err);
+            showToast("Could not access camera. Please check permissions.", "error");
+        }
+    };
+
+    const stopCamera = () => {
+        if (cameraStream) {
+            cameraStream.getTracks().forEach(track => track.stop());
+            setCameraStream(null);
+        }
+        setShowCamera(false);
+    };
+
+    const handleCapturePhoto = () => {
+        if (!videoRef.current) return;
+
+        const canvas = document.createElement("canvas");
+        canvas.width = videoRef.current.videoWidth;
+        canvas.height = videoRef.current.videoHeight;
+        const ctx = canvas.getContext("2d");
+        ctx.drawImage(videoRef.current, 0, 0);
+
+        canvas.toBlob((blob) => {
+            if (!blob) return;
+            const reader = new FileReader();
+            reader.onload = () => {
+                setImageToCrop(reader.result);
+                setShowCropModal(true);
+                stopCamera();
+            };
+            reader.readAsDataURL(blob);
+        }, "image/jpeg", 0.95);
+    };
+
+    useEffect(() => {
+        if (showCamera && cameraStream && videoRef.current) {
+            videoRef.current.srcObject = cameraStream;
+        }
+    }, [showCamera, cameraStream]);
+
+    // Cleanup camera on unmount
+    useEffect(() => {
+        return () => {
+            if (cameraStream) {
+                cameraStream.getTracks().forEach(track => track.stop());
+            }
+        };
+    }, [cameraStream]);
+
+    const handleRemovePhoto = async () => {
+        if (!window.confirm("Remove profile photo?")) return;
         setUploadingPhoto(true);
         try {
-            const storageRef = sRef(storage, `profile_images/${user.uid}_${Date.now()}`);
-            await uploadBytes(storageRef, file);
-            const url = await getDownloadURL(storageRef);
-            await updateProfile(user, { photoURL: url });
-            await update(ref(db, `users/${user.uid}`), { profile_image: url });
-            setUploadingPhoto(false);
-            setProfilePreview(null);
-            showToast("Profile photo updated!");
-        } catch (storageError) {
-            console.warn("Firebase Storage upload failed, using base64 fallback:", storageError);
-            try {
-                const base64Url = await new Promise((resolve, reject) => {
-                    const reader = new FileReader();
-                    reader.onload = () => {
-                        const img = new Image();
-                        img.onload = () => {
-                            const canvas = document.createElement("canvas");
-                            const maxSize = 200;
-                            let w = img.width, h = img.height;
-                            if (w > h) { h = (h / w) * maxSize; w = maxSize; }
-                            else { w = (w / h) * maxSize; h = maxSize; }
-                            canvas.width = w; canvas.height = h;
-                            canvas.getContext("2d").drawImage(img, 0, 0, w, h);
-                            resolve(canvas.toDataURL("image/jpeg", 0.7));
-                        };
-                        img.onerror = reject;
-                        img.src = reader.result;
-                    };
-                    reader.onerror = reject;
-                    reader.readAsDataURL(file);
-                });
-                await updateProfile(user, { photoURL: base64Url });
-                await update(ref(db, `users/${user.uid}`), { profile_image: base64Url });
-                showToast("Profile photo updated!");
-            } catch {
-                showToast("Failed to update profile picture.", "error");
-            }
-            setUploadingPhoto(false);
-            setProfilePreview(null);
+            await updateProfile(user, { photoURL: "" });
+            await update(ref(db, `users/${user.uid}`), { profile_image: "" });
+            setSavedProfileImage("/profile_image.jpg");
+            showToast("Profile photo removed.");
+        } catch (e) {
+            showToast("Failed to remove photo.", "error");
         }
+        setUploadingPhoto(false);
     };
 
     const saveProfile = async () => {
@@ -210,31 +347,82 @@ export default function Settings({ initialTab = "profile", onBack }) {
 
                     {/* ── PROFILE ── */}
                     <section id="profile" className={activeTab === "profile" ? "block animate-in fade-in slide-in-from-bottom-5 duration-500" : "hidden"}>
-                        <div className="pb-6 border-b border-slate-100 dark:border-slate-800 mb-8">
-                            <h2 className="text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white">Account Profile</h2>
-                            <p className="text-slate-500 dark:text-slate-400 mt-2">Manage your public information and avatar</p>
+                        <div className="pb-6 border-b border-slate-100 dark:border-slate-800 mb-8 text-left">
+                            <h2 className="text-2xl font-extrabold tracking-tight text-slate-900 dark:text-white">Account Profile</h2>
+                            <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Manage your public information and avatar</p>
                         </div>
 
                         <div className="settings-card p-10">
                             <div className="flex flex-col gap-8">
                                 <div className="flex flex-col items-center">
                                     <div className="relative group">
-                                        <div className="w-32 h-32 rounded-full overflow-hidden border-4 border-white dark:border-slate-800 shadow-xl bg-slate-100 dark:bg-slate-800">
+                                        <div
+                                            className="w-36 h-36 rounded-full overflow-hidden border-4 border-white dark:border-slate-800 shadow-xl bg-slate-100 dark:bg-slate-800 ring-4 ring-primary/10 cursor-pointer transition-transform active:scale-95"
+                                            onClick={() => setShowPhotoMenu(!showPhotoMenu)}
+                                        >
                                             <img
-                                                src={profilePreview || savedProfileImage}
+                                                src={savedProfileImage}
                                                 alt="Profile"
-                                                className="w-full h-full object-cover"
+                                                onError={(e) => {
+                                                    console.warn("Profile image failed to load, falling back to default.");
+                                                    e.target.src = "/profile_image.jpg";
+                                                }}
+                                                className={`w-full h-full object-cover transition-opacity duration-300 ${uploadingPhoto ? "opacity-30" : "opacity-100"}`}
                                             />
                                             {uploadingPhoto && (
-                                                <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px] flex items-center justify-center z-10">
-                                                    <div className="w-8 h-8 border-3 border-white/30 border-t-white rounded-full animate-spin" />
+                                                <div className="absolute inset-0 flex items-center justify-center z-10">
+                                                    <div className="w-10 h-10 border-4 border-primary/30 border-t-primary rounded-full animate-spin" />
                                                 </div>
                                             )}
+
+                                            {/* Hover Overlay */}
+                                            <div className="absolute inset-0 bg-black/40 flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                                <span className="material-symbols-outlined text-white text-3xl mb-1">photo_camera</span>
+                                                <span className="text-white text-[10px] uppercase font-bold tracking-widest">Change photo</span>
+                                            </div>
                                         </div>
-                                        <label className="absolute bottom-1 right-1 w-10 h-10 bg-primary text-white rounded-full flex items-center justify-center shadow-lg cursor-pointer hover:scale-110 transition-transform border-4 border-white dark:border-slate-900" title="Update Photo">
-                                            <span className="material-symbols-outlined text-[20px]">camera_alt</span>
-                                            <input type="file" className="hidden" accept="image/*" onChange={handleCreateProfileImage} />
-                                        </label>
+
+                                        {/* Dropdown Menu */}
+                                        {showPhotoMenu && (
+                                            <>
+                                                <div className="fixed inset-0 z-40" onClick={() => setShowPhotoMenu(false)}></div>
+                                                <div className="absolute left-1/2 mt-2 -translate-x-1/2 w-56 bg-white dark:bg-slate-800 rounded-2xl shadow-2xl border border-slate-100 dark:border-slate-700 py-2 z-50 animate-in fade-in zoom-in-95 duration-200">
+                                                    <button
+                                                        onClick={() => { setShowFullscreenPhoto(true); setShowPhotoMenu(false); }}
+                                                        className="w-full flex items-center gap-3 px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors text-slate-700 dark:text-slate-200 font-medium"
+                                                    >
+                                                        <span className="material-symbols-outlined text-[20px] text-slate-400">visibility</span>
+                                                        View photo
+                                                    </button>
+                                                    <button
+                                                        onClick={handleStartCamera}
+                                                        className="w-full flex items-center gap-3 px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors text-slate-700 dark:text-slate-200 font-medium"
+                                                    >
+                                                        <span className="material-symbols-outlined text-[20px] text-slate-400">photo_camera</span>
+                                                        Take photo
+                                                    </button>
+                                                    <button
+                                                        onClick={() => { document.getElementById('fileInput').click(); setShowPhotoMenu(false); }}
+                                                        className="w-full flex items-center gap-3 px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors text-slate-700 dark:text-slate-200 font-medium"
+                                                    >
+                                                        <span className="material-symbols-outlined text-[20px] text-slate-400">image</span>
+                                                        Upload photo
+                                                    </button>
+                                                    {savedProfileImage !== "/profile_image.jpg" && (
+                                                        <button
+                                                            onClick={() => { handleRemovePhoto(); setShowPhotoMenu(false); }}
+                                                            className="w-full flex items-center gap-3 px-4 py-3 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors text-red-500 font-medium border-t border-slate-50 dark:border-slate-700/50 mt-1"
+                                                        >
+                                                            <span className="material-symbols-outlined text-[20px]">delete</span>
+                                                            Remove photo
+                                                        </button>
+                                                    )}
+                                                </div>
+                                            </>
+                                        )}
+
+                                        {/* Hidden Inputs */}
+                                        <input id="fileInput" type="file" className="hidden" accept="image/*" onChange={handleCreateProfileImage} />
                                     </div>
                                 </div>
 
@@ -459,6 +647,122 @@ export default function Settings({ initialTab = "profile", onBack }) {
                     </div>
                 )}
             </main>
+
+            {/* ── CROP MODAL ── */}
+            {showCropModal && (
+                <div className="fixed inset-0 z-[10000] bg-black/95 backdrop-blur-xl flex flex-col items-center justify-start overflow-y-auto p-4 sm:p-8 animate-in fade-in duration-300">
+                    <div className="w-full max-w-xl flex flex-col gap-6 my-auto">
+                        <div className="flex items-center justify-between text-white">
+                            <div>
+                                <h3 className="text-xl font-bold tracking-tight">Crop Profile Photo</h3>
+                                <p className="text-sm text-slate-400 mt-1">Drag to position, scroll to zoom</p>
+                            </div>
+                            <button onClick={() => setShowCropModal(false)} className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-white/10 transition-colors">
+                                <span className="material-symbols-outlined">close</span>
+                            </button>
+                        </div>
+
+                        <div className="relative aspect-square w-full max-h-[50vh] sm:max-h-[60vh] rounded-3xl overflow-hidden bg-slate-900 shadow-2xl ring-1 ring-white/10">
+                            <Cropper
+                                image={imageToCrop}
+                                crop={crop}
+                                zoom={zoom}
+                                aspect={1}
+                                onCropChange={setCrop}
+                                onCropComplete={onCropComplete}
+                                onZoomChange={setZoom}
+                                cropShape="round"
+                                showGrid={false}
+                            />
+                        </div>
+
+                        <div className="bg-white/5 backdrop-blur-md p-6 rounded-3xl border border-white/10 space-y-6">
+                            <div className="flex items-center gap-6">
+                                <span className="material-symbols-outlined text-white/50">zoom_in</span>
+                                <input
+                                    type="range"
+                                    value={zoom}
+                                    min={1}
+                                    max={3}
+                                    step={0.1}
+                                    aria-labelledby="Zoom"
+                                    onChange={(e) => setZoom(e.target.value)}
+                                    className="flex-1 accent-primary h-1.5 bg-white/10 rounded-full appearance-none cursor-pointer"
+                                />
+                                <span className="text-white font-mono text-sm w-8">{Math.round(zoom * 100)}%</span>
+                            </div>
+
+                            <div className="flex items-center gap-4 pt-2">
+                                <button
+                                    onClick={() => setShowCropModal(false)}
+                                    className="flex-1 py-4 px-6 rounded-2xl font-bold text-white hover:bg-white/10 transition-all border border-white/10"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    onClick={handleCropSave}
+                                    className="flex-[2] py-4 px-6 bg-primary text-white rounded-2xl font-bold shadow-xl shadow-primary/20 hover:bg-primary/90 transition-all flex items-center justify-center gap-2"
+                                >
+                                    <span className="material-symbols-outlined text-[20px]">check</span>
+                                    Set as Profile Photo
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* ── CAMERA MODAL ── */}
+            {showCamera && (
+                <div className="fixed inset-0 z-[15000] bg-black/95 backdrop-blur-xl flex flex-col items-center justify-center p-4 sm:p-8 animate-in fade-in duration-300">
+                    <div className="w-full max-w-2xl flex flex-col gap-6">
+                        <div className="flex items-center justify-between text-white">
+                            <div>
+                                <h3 className="text-xl font-bold tracking-tight text-white">Live Camera</h3>
+                                <p className="text-sm text-slate-400 mt-1">Center yourself and snap a photo</p>
+                            </div>
+                            <button onClick={stopCamera} className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-white/10 transition-colors">
+                                <span className="material-symbols-outlined">close</span>
+                            </button>
+                        </div>
+
+                        <div className="relative aspect-square sm:aspect-video w-full rounded-3xl overflow-hidden bg-slate-900 shadow-2xl ring-1 ring-white/10">
+                            <video
+                                ref={videoRef}
+                                autoPlay
+                                playsInline
+                                className="w-full h-full object-cover"
+                                style={{ transform: 'scaleX(-1)' }} // Mirror the preview
+                            />
+
+                            {/* Shutter Button Overlay */}
+                            <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex items-center gap-6">
+                                <button
+                                    onClick={handleCapturePhoto}
+                                    className="w-20 h-20 rounded-full border-4 border-white flex items-center justify-center group active:scale-90 transition-all p-1"
+                                >
+                                    <div className="w-full h-full rounded-full bg-white group-hover:bg-slate-200 transition-colors" />
+                                </button>
+                            </div>
+                        </div>
+
+                        <div className="flex justify-center pt-2">
+                            <button onClick={stopCamera} className="text-white/60 hover:text-white font-bold transition-colors">Cancel</button>
+                        </div>
+                    </div>
+                </div>
+            )}
+            {/* ── FULLSCREEN PHOTO VIEWER ── */}
+            {showFullscreenPhoto && (
+                <FullscreenImageViewer
+                    src={savedProfileImage}
+                    onClose={() => setShowFullscreenPhoto(false)}
+                    title="Profile photo"
+                    isMine={true}
+                    onEdit={() => { document.getElementById('fileInput').click(); setShowFullscreenPhoto(false); }}
+                    onDelete={handleRemovePhoto}
+                />
+            )}
         </div>
     );
 }

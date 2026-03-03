@@ -3,13 +3,15 @@ import {
     onValue, push, ref, remove, set, update, runTransaction
 } from "firebase/database";
 import { auth, db } from "../firebase";
+import { useAuth } from "../context/AuthContext";
 import GroupInfo from "../Components/GroupInfo";
 import data from "@emoji-mart/data";
 import Picker from "@emoji-mart/react";
+import FullscreenImageViewer from "../Components/FullscreenImageViewer";
 import "./Chat.css";
 
 export default function GroupChat({ group, onBack, isMobile, hasLock, onLockToggle }) {
-    const currentUser = auth.currentUser;
+    const { currentUser, dbUser } = useAuth();
 
     const [messages, setMessages] = useState([]);
     const [text, setText] = useState("");
@@ -22,6 +24,7 @@ export default function GroupChat({ group, onBack, isMobile, hasLock, onLockTogg
     const [memberDetails, setMemberDetails] = useState([]);
     const [editingMsg, setEditingMsg] = useState(null);
     const [editText, setEditText] = useState("");
+    const [fullscreenData, setFullscreenData] = useState(null); // { src, title }
 
     // search
     const [showSearch, setShowSearch] = useState(false);
@@ -98,8 +101,8 @@ export default function GroupChat({ group, onBack, isMobile, hasLock, onLockTogg
         const msgData = {
             text,
             sender: currentUser.uid,
-            senderName: currentUser.displayName || "User",
-            senderPhoto: currentUser.photoURL || "/profile_image.jpg",
+            senderName: dbUser?.name || currentUser.displayName || "User",
+            senderPhoto: dbUser?.profile_image || currentUser.photoURL || "/profile_image.jpg",
             time: Date.now(),
             type: "text",
             replyTo: replyTo ? { text: replyTo.text, sender: replyTo.sender, senderName: replyTo.senderName } : null,
@@ -270,8 +273,12 @@ export default function GroupChat({ group, onBack, isMobile, hasLock, onLockTogg
                                     {!isMe && (
                                         <div className="shrink-0 mt-auto mb-1">
                                             <div
-                                                className="w-8 h-8 rounded-full bg-cover bg-center bg-slate-200"
+                                                className="w-8 h-8 rounded-full bg-cover bg-center bg-slate-200 cursor-pointer hover:opacity-80 transition-opacity"
                                                 style={{ backgroundImage: `url(${msg.senderPhoto || "/profile_image.jpg"})` }}
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    setFullscreenData({ src: msg.senderPhoto || "/profile_image.jpg", title: msg.senderName });
+                                                }}
                                             />
                                         </div>
                                     )}
@@ -394,6 +401,14 @@ export default function GroupChat({ group, onBack, isMobile, hasLock, onLockTogg
                     onGroupLeft={onBack}
                     hasLock={hasLock}
                     onLockToggle={onLockToggle}
+                />
+            )}
+
+            {fullscreenData && (
+                <FullscreenImageViewer
+                    src={fullscreenData.src}
+                    onClose={() => setFullscreenData(null)}
+                    title={fullscreenData.title}
                 />
             )}
         </div>

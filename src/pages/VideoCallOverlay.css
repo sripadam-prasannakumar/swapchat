@@ -3,7 +3,7 @@
 .call-overlay {
     position: fixed;
     inset: 0;
-    z-index: 50;
+    z-index: 9999;
     display: flex;
     flex-direction: column;
     background: linear-gradient(135deg, #0d0d1a 0%, #131221 50%, #0a1628 100%);

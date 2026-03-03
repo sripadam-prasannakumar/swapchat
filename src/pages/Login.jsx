@@ -9,6 +9,7 @@ const Login = () => {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
+  const [notFound, setNotFound] = useState(false);
   const [loading, setLoading] = useState(false);
   const [focused, setFocused] = useState(null);
 
@@ -17,6 +18,7 @@ const Login = () => {
   const handleLogin = async (e) => {
     e.preventDefault();
     setError("");
+    setNotFound(false);
     setLoading(true);
 
     try {
@@ -24,7 +26,8 @@ const Login = () => {
       navigate("/chat");
     } catch (err) {
       if (err.code === "auth/user-not-found") {
-        setError("Account not found. Please register.");
+        setNotFound(true);
+        setError("");
       } else if (err.code === "auth/wrong-password") {
         setError("Incorrect email or password.");
       } else if (err.code === "auth/invalid-credential") {
@@ -145,6 +148,27 @@ const Login = () => {
                   </div>
                 )}
 
+                {/* Not-registered error with register link */}
+                {notFound && (
+                  <div className="auth-error" style={{ flexDirection: 'column', alignItems: 'flex-start', gap: 6 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <span className="material-symbols-outlined" style={{ fontSize: 16 }}>person_off</span>
+                      No account found with this email.
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => navigate("/register")}
+                      style={{
+                        background: 'none', border: 'none', padding: 0,
+                        color: '#818cf8', fontWeight: 600, fontSize: 13,
+                        cursor: 'pointer', textDecoration: 'underline', marginLeft: 22
+                      }}
+                    >
+                      👉 Register first — it's free!
+                    </button>
+                  </div>
+                )}
+
                 {/* Submit */}
                 <button
                   type="submit"
@@ -193,7 +217,7 @@ const Login = () => {
               <p className="auth-switch">
                 Don't have an account?{" "}
                 <button onClick={() => navigate("/register")} className="auth-switch-link">
-                  Create one
+                  Register first
                 </button>
               </p>
             </div>
