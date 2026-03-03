@@ -9,6 +9,7 @@
   --primary: #7c3aed;
   --primary-light: #a78bfa;
   --primary-dark: #5b21b6;
+  --primary-glow: rgba(124, 58, 237, 0.15);
 
   --bg-light: #f8fafc;
   --bg-dark: #0f172a;
@@ -16,14 +17,16 @@
   --text-light: #0f172a;
   --text-dark: #f8fafc;
 
-  --border-light: rgba(226, 232, 240, 0.6);
-  --border-dark: rgba(255, 255, 255, 0.05);
+  --border-light: rgba(226, 232, 240, 0.8);
+  --border-dark: rgba(255, 255, 255, 0.08);
 
   --glass-bg: rgba(255, 255, 255, 0.7);
   --glass-bg-dark: rgba(15, 23, 42, 0.8);
 
   --shadow-premium: 0 10px 40px -10px rgba(0, 0, 0, 0.1);
+  --shadow-premium-hover: 0 20px 50px -12px rgba(0, 0, 0, 0.15);
   --transition-smooth: 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  --transition-fast: 0.15s ease-out;
 }
 
 @layer base {

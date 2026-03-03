@@ -1,32 +1,61 @@
 .leftnav {
-  width: 64px;
+  width: 72px;
+  /* Slightly wider for better reach */
   height: 100vh;
-  background: #f0f2f5;
-  border-right: 1px solid #ddd;
+  background: var(--bg-light);
+  border-right: 1px solid var(--border-light);
   display: flex;
   flex-direction: column;
   justify-content: space-between;
   align-items: center;
+  padding: 20px 0;
+  z-index: 101;
+  transition: transform var(--transition-smooth);
+}
+
+@media (max-width: 768px) {
+  .leftnav {
+    display: none;
+    /* Hidden on mobile by default to maximize space */
+  }
 }
 
 .nav-top,
 .nav-bottom {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 20px;
 }
 
 .nav-icon {
-  font-size: 22px;
+  font-size: 24px;
   cursor: pointer;
+  color: var(--text-muted-light);
+  transition: color var(--transition-fast);
+}
+
+.nav-icon:hover {
+  color: var(--primary);
 }
 
 .nav-profile {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  object-fit: cover;
+  border: 2px solid transparent;
+  transition: border-color var(--transition-fast);
+}
+
+.nav-profile:hover {
+  border-color: var(--primary);
 }
 
 body.dark .leftnav {
-  background: #202c33;
+  background: var(--surface-dark);
+  border-right-color: var(--border-dark);
+}
+
+body.dark .nav-icon {
+  color: var(--text-muted-dark);
 }

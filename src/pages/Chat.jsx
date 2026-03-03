@@ -652,15 +652,21 @@ const Chat = () => {
     <div className="flex h-screen bg-background-light dark:bg-background-dark font-display overflow-hidden">
 
 
-      {(!isMobile || !selectedUser) && <LeftNav onSelect={setActiveScreen} activeScreen={activeScreen} />}
-      {activeScreen === "chats" && (!isMobile || !selectedUser) && !location.state?.selectedUserId && <Sidebar onSelectUser={setSelectedUser} selectedUser={selectedUser} currentUser={currentUser} />}
+      {(!isMobile || !selectedUser) && (
+        <div className={`flex h-full ${isMobile ? 'w-full' : ''}`}>
+          <LeftNav onSelect={setActiveScreen} activeScreen={activeScreen} />
+          {activeScreen === "chats" && !location.state?.selectedUserId && (
+            <Sidebar onSelectUser={setSelectedUser} selectedUser={selectedUser} currentUser={currentUser} />
+          )}
+        </div>
+      )}
 
       {activeScreen === "profile" && <div className="flex-1 overflow-auto"><Settings initialTab="profile" onBack={() => setActiveScreen("chats")} /></div>}
       {activeScreen === "settings" && <div className="flex-1 overflow-auto"><Settings initialTab="general" onBack={() => setActiveScreen("chats")} /></div>}
       {activeScreen === "ai" && <div className="flex-1 overflow-hidden"><AIChatbot /></div>}
 
-      {activeScreen === "chats" && (!isMobile || selectedUser) && (
-        <>
+      {activeScreen === "chats" && (selectedUser || !isMobile) && (
+        <div className={`flex-1 flex flex-col h-full bg-surface-light dark:bg-surface-dark relative ${isMobile && selectedUser ? 'z-50' : ''}`}>
           {/* ===== GROUP CHAT ROUTING ===== */}
           {selectedUser?.isGroup ? (
             <GroupChat
@@ -674,7 +680,7 @@ const Chat = () => {
             />
           ) : (
             <main
-              className={`flex-1 flex flex-col relative chat-area ${currentTheme ? `theme-${currentTheme}` : ''} ${customBg ? 'theme-custom-bg' : ''}`}
+              className={`flex-1 flex flex-col relative chat-area ${currentTheme ? `theme-${currentTheme}` : ''} ${customBg ? 'theme-custom-bg' : ''} ${!selectedUser ? 'hidden md:flex' : 'flex'}`}
               style={customBg ? { backgroundImage: `url(${customBg})`, backgroundSize: 'cover', backgroundPosition: 'center' } : {}}
             >
               {selectedUser ? (
@@ -1138,9 +1144,8 @@ const Chat = () => {
               />
             )
           }
-        </>
-      )
-      }
+        </div>
+      )}
 
       {/* Toast */}
       {

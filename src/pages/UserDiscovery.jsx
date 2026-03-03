@@ -75,13 +75,13 @@ const UserDiscovery = () => {
                 `}
             </style>
             {/* Header Area */}
-            <header className="px-6 py-8 md:px-12 md:py-12 shrink-0 animate-fade-in">
-                <div className="max-w-7xl mx-auto flex flex-col md:flex-row md:items-center justify-between gap-6">
+            <header className="px-4 py-6 md:px-12 md:py-12 shrink-0 animate-fade-in">
+                <div className="max-w-7xl mx-auto flex flex-col md:flex-row md:items-center justify-between gap-4 md:gap-6">
                     <div>
-                        <h1 className="text-3xl md:text-4xl font-extrabold text-slate-900 dark:text-white tracking-tight">
+                        <h1 className="text-2xl md:text-4xl font-extrabold text-slate-900 dark:text-white tracking-tight">
                             Discover <span className="text-primary italic">People</span>
                         </h1>
-                        <p className="text-slate-500 dark:text-slate-400 mt-2 font-medium">
+                        <p className="text-slate-500 dark:text-slate-400 mt-1 md:mt-2 text-sm md:text-base font-medium">
                             Connect with {users.length} amazing people on SwapChat
                         </p>
                     </div>

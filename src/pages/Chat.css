@@ -93,6 +93,13 @@ body.dark .chat-area::before {
     flex-shrink: 0;
 }
 
+@media (max-width: 768px) {
+    .chat-header {
+        height: 60px;
+        padding: 0 12px;
+    }
+}
+
 body.dark .chat-header {
     background: var(--surface-dark);
     border-bottom-color: var(--border-dark);
@@ -141,14 +148,31 @@ body.dark .header-action-btn:hover {
 /* ===== MESSAGES AREA ===== */
 .messages {
     flex: 1;
-    padding: 20px 8%;
+    padding: 16px 5%;
     overflow-y: auto;
     display: flex;
     flex-direction: column;
-    gap: 2px;
+    gap: 4px;
+    /* Increased from 2px for better readability */
     position: relative;
     z-index: 1;
     scroll-behavior: smooth;
+    max-width: 1400px;
+    margin: 0 auto;
+    width: 100%;
+}
+
+@media (max-width: 1024px) {
+    .messages {
+        padding: 16px 3%;
+    }
+}
+
+@media (max-width: 768px) {
+    .messages {
+        padding: 12px 14px;
+        gap: 6px;
+    }
 }
 
 .messages::-webkit-scrollbar {
@@ -225,15 +249,25 @@ body.dark .date-separator span {
 /* ===== BUBBLE ===== */
 .bubble {
     position: relative;
-    padding: 7px 9px 8px;
-    border-radius: 7.5px;
+    padding: 8px 12px 10px;
+    /* Slightly more spacious */
+    border-radius: 12px;
     font-size: 14.5px;
     line-height: 1.5;
     word-wrap: break-word;
     white-space: pre-wrap;
     box-shadow: var(--bubble-shadow);
-    max-width: 480px;
-    min-width: 80px;
+    max-width: min(85%, 520px);
+    /* Better max-width constraint */
+    min-width: 60px;
+}
+
+@media (max-width: 480px) {
+    .bubble {
+        padding: 7px 10px 8px;
+        font-size: 14px;
+        max-width: 90%;
+    }
 }
 
 /* Tail shapes (WhatsApp-style) */
@@ -616,8 +650,6 @@ body.dark .msg-action-btn:hover {
     background: rgba(255, 255, 255, .06);
     color: var(--primary-light);
 }
-
-.msg-action-btn.danger {}
 
 .msg-action-btn.danger:hover {
     color: #ef4444;

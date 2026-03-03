@@ -167,10 +167,20 @@
 .ai-messages {
   flex: 1;
   overflow-y: auto;
-  padding: 24px;
+  padding: 24px 5%;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 16px;
+  max-width: 1000px;
+  width: 100%;
+  margin: 0 auto;
+}
+
+@media (max-width: 768px) {
+  .ai-messages {
+    padding: 16px 14px;
+    gap: 12px;
+  }
 }
 
 .ai-messages::-webkit-scrollbar {
