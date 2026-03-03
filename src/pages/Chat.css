@@ -257,8 +257,8 @@ body.dark .date-separator span {
     white-space: pre-wrap;
     box-shadow: var(--bubble-shadow);
     max-width: min(85%, 600px);
-    min-width: 80px;
-    /* Increased from 60px */
+    min-width: 100px;
+    /* Increased to prevent text wrapping on small labels and timestamp */
 }
 
 @media (max-width: 480px) {

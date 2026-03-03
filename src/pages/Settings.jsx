@@ -294,7 +294,7 @@ export default function Settings({ initialTab = "profile", onBack }) {
     };
 
     return (
-        <div className="flex h-full bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 overflow-hidden font-display">
+        <div className="flex h-screen bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 overflow-hidden font-display">
             {toast && <Toast msg={toast.msg} type={toast.type} onDone={() => setToast(null)} />}
 
             {/* Settings Side Navigation */}

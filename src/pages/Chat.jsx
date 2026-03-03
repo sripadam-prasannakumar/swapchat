@@ -333,12 +333,19 @@ const Chat = () => {
       console.error('sendMediaMessage: missing chatId, user, or file', { cid, user, file });
       return;
     }
+    console.log('📤 Starting media upload...', { type, fileName });
     try {
       const fileName = file.name || `media_${Date.now()}`;
       const path = `chats/${cid}/media/${Date.now()}_${fileName}`;
       const storageRef = sRef(storage, path);
-      await uploadBytes(storageRef, file, { contentType: file.type });
+
+      console.log('☁️ Uploading to Storage path:', path);
+      const uploadTask = await uploadBytes(storageRef, file, { contentType: file.type });
+      console.log('✅ Bytes uploaded. Fetching download URL...');
+
       const url = await getDownloadURL(storageRef);
+      console.log('🔗 Download URL retrieved:', url);
+
       const msgRef = ref(db, `chats/${cid}`);
       await push(msgRef, {
         type,
@@ -348,10 +355,13 @@ const Chat = () => {
         time: Date.now(),
         seen: false,
       });
-      const lastMsg = `📎 ${fileName}`;
+
+      console.log('🚀 Message pushed to RTDB');
+
+      const lastMsg = type === 'image' ? '📷 Photo' : type === 'video' ? '🎥 Video' : `📎 ${fileName}`;
       await update(ref(db, `users/${user.uid}`), { lastMessage: lastMsg, lastMessageTime: Date.now() });
     } catch (err) {
-      console.error('Media upload failed:', err);
+      console.error('❌ Media upload failed:', err);
       alert(`Upload failed: ${err.message || 'Please try again.'}`);
     }
   };
