@@ -333,9 +333,9 @@ const Chat = () => {
       console.error('sendMediaMessage: missing chatId, user, or file', { cid, user, file });
       return;
     }
+    const fileName = file.name || `media_${Date.now()}`;
     console.log('📤 Starting media upload...', { type, fileName });
     try {
-      const fileName = file.name || `media_${Date.now()}`;
       const path = `chats/${cid}/media/${Date.now()}_${fileName}`;
       const storageRef = sRef(storage, path);
 
