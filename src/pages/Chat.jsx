@@ -12,6 +12,7 @@ import {
 } from "firebase/database";
 import { ref as sRef, uploadBytes, getDownloadURL } from "firebase/storage";
 import React, { useEffect, useRef, useState, useContext } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
 import { ThemeContext } from "../context/ThemeContext";
 import { auth, db, storage } from "../firebase";
 
@@ -39,6 +40,8 @@ const ONE_HOUR = 60 * 60 * 1000;
 const Chat = () => {
   const { currentUser } = useAuth();
   const { startCall, setActiveChatId } = useCall();
+  const navigate = useNavigate();
+  const location = useLocation();
   const { dark } = useContext(ThemeContext);
   const [selectedUser, setSelectedUser] = useState(null);
   const [messages, setMessages] = useState([]);
@@ -98,6 +101,20 @@ const Chat = () => {
   const [recordSeconds, setRecordSeconds] = useState(0);
   const mediaRecorderRef = useRef(null);
   const recordChunksRef = useRef([]);
+
+  // Auto-select user from Discovery page
+  useEffect(() => {
+    const selectedId = location.state?.selectedUserId;
+    if (selectedId && currentUser) {
+      const userRef = ref(db, `users/${selectedId}`);
+      get(userRef).then((snapshot) => {
+        if (snapshot.exists()) {
+          setSelectedUser({ uid: selectedId, ...snapshot.val() });
+          setActiveScreen("chats");
+        }
+      });
+    }
+  }, [location.state, currentUser]);
   const recordTimerRef = useRef(null);
   const isRecordingRef = useRef(false);
 
@@ -636,7 +653,7 @@ const Chat = () => {
 
 
       {(!isMobile || !selectedUser) && <LeftNav onSelect={setActiveScreen} activeScreen={activeScreen} />}
-      {activeScreen === "chats" && (!isMobile || !selectedUser) && <Sidebar onSelectUser={setSelectedUser} selectedUser={selectedUser} currentUser={currentUser} />}
+      {activeScreen === "chats" && (!isMobile || !selectedUser) && !location.state?.selectedUserId && <Sidebar onSelectUser={setSelectedUser} selectedUser={selectedUser} currentUser={currentUser} />}
 
       {activeScreen === "profile" && <div className="flex-1 overflow-auto"><Settings initialTab="profile" onBack={() => setActiveScreen("chats")} /></div>}
       {activeScreen === "settings" && <div className="flex-1 overflow-auto"><Settings initialTab="general" onBack={() => setActiveScreen("chats")} /></div>}
@@ -667,6 +684,11 @@ const Chat = () => {
                     <div className="flex items-center gap-3 overflow-hidden min-w-0">
                       {isMobile && (
                         <button onClick={() => setSelectedUser(null)} className="header-action-btn mr-1" aria-label="Back">
+                          <span className="material-symbols-outlined text-[22px]">arrow_back</span>
+                        </button>
+                      )}
+                      {location.state?.selectedUserId && (
+                        <button onClick={() => navigate("/discovery")} className="header-action-btn mr-1" title="Back to Discovery">
                           <span className="material-symbols-outlined text-[22px]">arrow_back</span>
                         </button>
                       )}

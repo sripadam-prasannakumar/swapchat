@@ -43,7 +43,7 @@ const AuthSlider = () => {
         setLoginLoading(true);
         try {
             await signInWithEmailAndPassword(auth, loginEmail, loginPassword);
-            navigate("/chat");
+            navigate("/discovery");
         } catch (err) {
             if (err.code === "auth/user-not-found" || err.code === "auth/invalid-credential") {
                 setLoginError("Invalid email or password.");
@@ -74,7 +74,7 @@ const AuthSlider = () => {
                 profile_image: "",
                 createdAt: Date.now(),
             });
-            navigate("/chat");
+            navigate("/discovery");
         } catch (err) {
             if (err.code === "auth/email-already-in-use") {
                 setRegError("Email already in use. Please sign in.");
